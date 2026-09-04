@@ -1,4 +1,4 @@
-import { useLoaderData, useActionData, Form, redirect } from "react-router";
+import { useLoaderData, useActionData, Form, Link, redirect } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server.js";
