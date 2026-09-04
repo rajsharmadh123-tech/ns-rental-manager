@@ -446,12 +446,47 @@
 
         const data = await res.json();
         if (res.ok && data.success) {
-          showMessage('🎉 ' + data.message, false);
-          // Clear inputs
-          nameInput.value = '';
-          phoneInput.value = '';
-          emailInput.value = '';
-          notesInput.value = '';
+          showMessage('🎉 Booking reserved! Redirecting to checkout...', false);
+
+          // Add to Shopify Cart with rental line item properties
+          try {
+            let variantId = {{ product.selected_or_first_available_variant.id | json }};
+            const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') || document.querySelector('[name="id"]');
+            if (variantField && variantField.value) {
+              variantId = variantField.value;
+            }
+
+            const cartPayload = {
+              items: [{
+                id: variantId,
+                quantity: 1,
+                properties: {
+                  'Rental Pickup Date': pickup.value,
+                  'Rental Return Date': returnDate.value,
+                  'Rental Booking ID': data.bookingId || '',
+                  'Security Deposit': deposit || '₹2,000',
+                  'Booking Type': 'Rental'
+                }
+              }]
+            };
+
+            await fetch('/cart/add.js', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cartPayload)
+            });
+
+            // Redirect customer directly to Shopify Checkout
+            window.location.href = '/checkout';
+            return;
+          } catch (cartErr) {
+            // If cart add fails, customer still has confirmed booking in GM Rental Manager
+            showMessage('🎉 ' + data.message, false);
+            nameInput.value = '';
+            phoneInput.value = '';
+            emailInput.value = '';
+            notesInput.value = '';
+          }
         } else {
           showMessage('❌ ' + (data.error || 'Failed to submit booking.'), true);
           bookButton.disabled = false;
