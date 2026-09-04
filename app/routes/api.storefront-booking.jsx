@@ -4,7 +4,8 @@ import { checkProductAvailability } from "../utils/availability.server.js";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400",
   "Content-Type": "application/json",
 };
 
