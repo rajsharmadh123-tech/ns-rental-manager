@@ -1,4 +1,5 @@
 import { checkProductAvailability } from "../utils/availability.server.js";
+import prisma from "../db.server.js";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
@@ -21,13 +22,58 @@ export const loader = async ({ request }) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!shop || !productId || !pickupDate || !returnDate) {
+  if (!shop || !productId) {
     return new Response(
       JSON.stringify({
         isAvailable: false,
-        message: "Missing required parameters: shop, productId, pickupDate, returnDate.",
+        message: "Missing required parameters: shop, productId.",
       }),
       { status: 400, headers: corsHeaders }
+    );
+  }
+
+  // Fetch individual product pricing & security deposit from database
+  let rentalPrice = null;
+  let securityDeposit = null;
+
+  try {
+    const pConfig = await prisma.rentalProductConfig.findFirst({
+      where: {
+        shop,
+        productId: { contains: String(productId) },
+      },
+    });
+
+    if (pConfig) {
+      if (pConfig.rentalPrice !== undefined && pConfig.rentalPrice !== null) {
+        rentalPrice = pConfig.rentalPrice;
+      }
+      if (pConfig.securityDeposit !== undefined && pConfig.securityDeposit !== null) {
+        securityDeposit = pConfig.securityDeposit;
+      }
+    }
+
+    if (securityDeposit === null) {
+      const settings = await prisma.rentalSettings.findUnique({
+        where: { shop },
+      });
+      if (settings && settings.defaultDeposit) {
+        securityDeposit = settings.defaultDeposit;
+      }
+    }
+  } catch (e) {
+    console.warn("Error fetching product rental config:", e);
+  }
+
+  if (!pickupDate || !returnDate) {
+    return new Response(
+      JSON.stringify({
+        isAvailable: true,
+        message: "Select dates to check availability.",
+        rentalPrice,
+        securityDeposit,
+      }),
+      { status: 200, headers: corsHeaders }
     );
   }
 
@@ -44,6 +90,8 @@ export const loader = async ({ request }) => {
       isAvailable: result.isAvailable,
       message: result.message,
       conflictingCount: result.conflictingRentals.length,
+      rentalPrice,
+      securityDeposit,
     }),
     { status: 200, headers: corsHeaders }
   );

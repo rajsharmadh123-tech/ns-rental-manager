@@ -49,6 +49,27 @@
   endif
 
   assign selected_variant = product.selected_or_first_available_variant | default: product.variants.first
+
+  # Smart Per-Product Pricing Detection:
+  # 1. Product Metafields (rental.price or custom.rental_price)
+  # 2. Product Selling Price if use_product_price is enabled
+  # 3. Block settings fallback
+  assign initial_rental_price = product.metafields.rental.price | default: product.metafields.custom.rental_price
+  if initial_rental_price == blank
+    if block.settings.use_product_price and product.price > 0
+      assign initial_rental_price = product.price | money
+    else
+      assign initial_rental_price = block.settings.rental_price | default: "₹5,500"
+    endif
+  endif
+
+  # Smart Per-Product Deposit Detection:
+  # 1. Product Metafields (rental.deposit or custom.security_deposit)
+  # 2. Block settings fallback
+  assign initial_deposit = product.metafields.rental.deposit | default: product.metafields.custom.security_deposit
+  if initial_deposit == blank
+    assign initial_deposit = block.settings.deposit | default: "₹2,000"
+  endif
 %}
 
 <div class="gm-rental-widget" id="gm-rental-{{ section.id }}">
@@ -71,17 +92,17 @@
       <button type="button" class="gm-sync-reset" title="Clear synced dates">✕ Reset</button>
     </div>
 
+    <!-- Dynamic Rental Price for THIS Product -->
     <div class="gm-rental-price">
       <span>Rental Price</span>
-      <strong>{{ block.settings.rental_price }}</strong>
+      <strong class="gm-price-val">{{ initial_rental_price }}</strong>
     </div>
 
-    {% if block.settings.deposit != blank %}
-      <div class="gm-rental-deposit">
-        <span>Security Deposit</span>
-        <strong>{{ block.settings.deposit }}</strong>
-      </div>
-    {% endif %}
+    <!-- Dynamic Security Deposit for THIS Product -->
+    <div class="gm-rental-deposit">
+      <span>Security Deposit (Refundable)</span>
+      <strong class="gm-deposit-val">{{ initial_deposit }}</strong>
+    </div>
 
     <!-- Rental Booking Dates Selection -->
     <div class="gm-rental-dates">
@@ -902,6 +923,9 @@
   const pickup = root.querySelector('.gm-rental-pickup');
   const returnDate = root.querySelector('.gm-rental-return');
 
+  const priceValEl = root.querySelector('.gm-price-val');
+  const depositValEl = root.querySelector('.gm-deposit-val');
+
   const syncBanner = root.querySelector('.gm-rental-sync-banner');
   const syncReset = root.querySelector('.gm-sync-reset');
 
@@ -917,8 +941,9 @@
   const productIdStr = String({{ product.id | json }});
   const defaultVariantId = {{ selected_variant.id | json }};
   const itemType = {{ item_type | json }};
-  const rentalPrice = {{ block.settings.rental_price | json }};
-  const deposit = {{ block.settings.deposit | json }};
+
+  let activeRentalPrice = {{ initial_rental_price | json }};
+  let activeDeposit = {{ initial_deposit | json }};
   const whatsappNumber = {{ block.settings.whatsapp_number | json }};
 
   const STORAGE_KEY = 'gm_rental_session_dates';
@@ -962,7 +987,7 @@
 
       if (synced && syncBanner) {
         syncBanner.style.display = 'flex';
-        checkAvailabilityApi();
+        checkAvailabilityAndPricing(true);
       }
     } catch (e) {}
   }
@@ -998,37 +1023,38 @@
         }
       }
       saveSessionDates();
-      checkAvailabilityApi();
+      checkAvailabilityAndPricing(true);
     });
   }
 
   if (returnDate) {
     returnDate.addEventListener('change', function() {
       saveSessionDates();
-      checkAvailabilityApi();
+      checkAvailabilityAndPricing(true);
     });
   }
 
-  async function checkAvailabilityApi() {
-    if (!pickup.value || !returnDate.value) return;
+  // Fetch individual product pricing & availability from GM Rental Manager
+  async function checkAvailabilityAndPricing(isCheckingDates) {
+    const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+    const renderUrl = 'https://ns-rental-manager.onrender.com/api/availability';
+    const proxyUrl = '/apps/gm-rental/api/availability';
 
-    if (returnDate.value < pickup.value) {
-      showMessage('Return date must be on or after pickup date.', true);
-      setButtonsDisabled(true);
-      return;
+    let queryString = '?shop=' + encodeURIComponent(shop) + '&productId=' + encodeURIComponent(productIdStr);
+    if (pickup && pickup.value && returnDate && returnDate.value) {
+      queryString += '&pickupDate=' + encodeURIComponent(pickup.value) + '&returnDate=' + encodeURIComponent(returnDate.value);
     }
 
-    showMessage('Checking ' + itemType.toLowerCase() + ' availability...', false);
+    if (isCheckingDates && pickup.value && returnDate.value) {
+      if (returnDate.value < pickup.value) {
+        showMessage('Return date must be on or after pickup date.', true);
+        setButtonsDisabled(true);
+        return;
+      }
+      showMessage('Checking ' + itemType.toLowerCase() + ' availability...', false);
+    }
 
     try {
-      const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
-      const renderUrl = 'https://ns-rental-manager.onrender.com/api/availability';
-      const proxyUrl = '/apps/gm-rental/api/availability';
-      const queryString = '?shop=' + encodeURIComponent(shop) +
-        '&productId=' + encodeURIComponent(productIdStr) +
-        '&pickupDate=' + encodeURIComponent(pickup.value) +
-        '&returnDate=' + encodeURIComponent(returnDate.value);
-
       let res;
       try {
         res = await fetch(renderUrl + queryString);
@@ -1042,23 +1068,42 @@
         const ct = res.headers.get('content-type') || '';
         if (ct.includes('application/json')) {
           const data = await res.json();
-          if (data.isAvailable) {
-            showMessage('This ' + itemType.toLowerCase() + ' is AVAILABLE for your selected dates! 🎉', false);
-            setButtonsDisabled(false);
-            return;
-          } else {
-            showMessage(data.message || (itemType + ' is UNAVAILABLE for these dates.'), true);
-            setButtonsDisabled(true);
-            return;
+
+          // Dynamically update this product's configured Rental Price
+          if (data.rentalPrice !== undefined && data.rentalPrice !== null) {
+            activeRentalPrice = '₹' + Number(data.rentalPrice).toLocaleString('en-IN');
+            if (priceValEl) priceValEl.textContent = activeRentalPrice;
+          }
+
+          // Dynamically update this product's configured Security Deposit
+          if (data.securityDeposit !== undefined && data.securityDeposit !== null) {
+            activeDeposit = '₹' + Number(data.securityDeposit).toLocaleString('en-IN');
+            if (depositValEl) depositValEl.textContent = activeDeposit;
+          }
+
+          if (isCheckingDates && pickup.value && returnDate.value) {
+            if (data.isAvailable) {
+              showMessage('This ' + itemType.toLowerCase() + ' is AVAILABLE for your selected dates! 🎉', false);
+              setButtonsDisabled(false);
+              return;
+            } else {
+              showMessage(data.message || (itemType + ' is UNAVAILABLE for these dates.'), true);
+              setButtonsDisabled(true);
+              return;
+            }
           }
         }
       }
-      // If server response is not strictly json, still allow user to book
-      showMessage('Dates confirmed (' + pickup.value + ' to ' + returnDate.value + '). Ready to book! 🎉', false);
-      setButtonsDisabled(false);
+
+      if (isCheckingDates && pickup.value && returnDate.value) {
+        showMessage('Dates confirmed (' + pickup.value + ' to ' + returnDate.value + '). Ready to book! 🎉', false);
+        setButtonsDisabled(false);
+      }
     } catch (err) {
-      showMessage('Dates selected: ' + pickup.value + ' to ' + returnDate.value + '. Ready to book! 🎉', false);
-      setButtonsDisabled(false);
+      if (isCheckingDates && pickup.value && returnDate.value) {
+        showMessage('Dates selected: ' + pickup.value + ' to ' + returnDate.value + '. Ready to book! 🎉', false);
+        setButtonsDisabled(false);
+      }
     }
   }
 
@@ -1079,7 +1124,7 @@
     return true;
   }
 
-  // Resilient Reservation Engine (Never crashes user checkout flow)
+  // Resilient Reservation Engine with exact product pricing
   async function submitReservation() {
     const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
     const year = new Date().getFullYear();
@@ -1091,8 +1136,8 @@
       productTitle: productName,
       pickupDate: pickup.value,
       returnDate: returnDate.value,
-      rentalPrice: parseFloat(String(rentalPrice).replace(/[^\d.]/g, '')) || 0,
-      securityDeposit: parseFloat(String(deposit).replace(/[^\d.]/g, '')) || 0,
+      rentalPrice: parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0,
+      securityDeposit: parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0,
     };
 
     const renderUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
@@ -1151,7 +1196,8 @@
           'Rental Pickup Date': pickup.value,
           'Rental Return Date': returnDate.value,
           'Rental Booking ID': bookingId || '',
-          'Security Deposit': deposit || '₹2,000',
+          'Rental Price': String(activeRentalPrice),
+          'Security Deposit': String(activeDeposit),
           'Item Type': itemType,
           'Booking Type': 'Rental'
         }
@@ -1245,6 +1291,8 @@
         'I want to rent this ' + itemType.toLowerCase() + '.',
         '',
         'Product: ' + productName,
+        'Rental Rate: ' + activeRentalPrice,
+        'Security Deposit: ' + activeDeposit,
         'Pickup Date: ' + pickup.value,
         'Return Date: ' + returnDate.value,
         '',
@@ -1289,7 +1337,7 @@
           const pType = props['Item Type'] || 'Outfit';
           const pPickup = props['Rental Pickup Date'] || 'N/A';
           const pReturn = props['Rental Return Date'] || 'N/A';
-          const pDep = props['Security Deposit'] || '₹2,000';
+          const pDep = props['Security Deposit'] || activeDeposit;
           const linePrice = (item.line_price / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
 
           return `
@@ -1371,8 +1419,9 @@
     if (checkBtn) checkBtn.addEventListener('click', () => window.location.href = '/checkout');
   }
 
-  // Initialize
+  // Initialize: Load session dates & fetch individual product pricing
   loadSessionDates();
+  checkAvailabilityAndPricing(false);
   updateFloatingBar();
 })();
 </script>
@@ -1395,15 +1444,21 @@
       "default": "Select your rental dates & check instant availability"
     },
     {
+      "type": "checkbox",
+      "id": "use_product_price",
+      "label": "Use Product Selling Price as Rental Rate (Recommended)",
+      "default": true
+    },
+    {
       "type": "text",
       "id": "rental_price",
-      "label": "Rental Price",
+      "label": "Fallback Rental Price",
       "default": "₹5,500"
     },
     {
       "type": "text",
       "id": "deposit",
-      "label": "Security Deposit",
+      "label": "Default Security Deposit",
       "default": "₹2,000"
     },
     {
