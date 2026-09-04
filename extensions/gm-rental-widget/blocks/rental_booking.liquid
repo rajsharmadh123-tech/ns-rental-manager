@@ -53,8 +53,18 @@
   <div class="gm-rental-card">
 
     <div class="gm-rental-header">
-      <h3 class="gm-rental-title">{{ widget_heading }}</h3>
+      <div class="gm-rental-header-top">
+        <h3 class="gm-rental-title">{{ widget_heading }}</h3>
+        <span class="gm-rental-badge">{{ item_type }}</span>
+      </div>
       <p class="gm-rental-sub">{{ block.settings.subheading }}</p>
+    </div>
+
+    <!-- Smart Synced Dates Indicator -->
+    <div class="gm-rental-sync-banner" style="display: none;">
+      <span class="gm-sync-icon">✨</span>
+      <span class="gm-sync-text">Dates auto-synced from your Rental Bag</span>
+      <button type="button" class="gm-sync-reset" title="Clear synced dates">✕ Reset</button>
     </div>
 
     <div class="gm-rental-price">
@@ -132,12 +142,12 @@
       </div>
 
       <div class="gm-rental-field" style="margin-bottom: 10px;">
-        <label for="gm-notes-{{ section.id }}">Measurements / Fitting Notes (Optional)</label>
+        <label for="gm-notes-{{ section.id }}">Measurements / Notes (Optional)</label>
         <input
           type="text"
           id="gm-notes-{{ section.id }}"
           class="gm-rental-notes"
-          placeholder="Size preference, event date, measurements..."
+          placeholder="e.g. Size M, matching jewellery required..."
         >
       </div>
 
@@ -147,6 +157,31 @@
 
     <div class="gm-rental-buttons">
 
+      <!-- Button 1: Multi-item Add to Rental Bag -->
+      <button
+        type="button"
+        class="gm-rental-add-bag"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+        {{ block.settings.add_to_bag_text | default: "+ Add to Rental Bag (Rent More)" }}
+      </button>
+
+      <!-- Button 2: Direct 1-Click Checkout -->
+      <button
+        type="button"
+        class="gm-rental-book"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        {{ block.settings.book_text | default: "Book & Checkout Now" }}
+      </button>
+
+      <!-- Button 3: WhatsApp Inquiry -->
       {% if block.settings.whatsapp_number != blank %}
         <a
           href="#"
@@ -154,16 +189,12 @@
           target="_blank"
           rel="noopener"
         >
-          {{ block.settings.whatsapp_text }}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          </svg>
+          {{ block.settings.whatsapp_text | default: "Rent Through WhatsApp" }}
         </a>
       {% endif %}
-
-      <button
-        type="button"
-        class="gm-rental-book"
-      >
-        {{ block.settings.book_text }}
-      </button>
 
     </div>
 
@@ -171,6 +202,65 @@
       {{ block.settings.note }}
     </div>
 
+  </div>
+</div>
+
+<!-- MULTI-ITEM RENTAL BAG MODAL -->
+<div class="gm-rental-modal-backdrop" id="gm-rental-modal-{{ section.id }}" style="display: none;">
+  <div class="gm-rental-modal-dialog">
+    <div class="gm-rental-modal-header">
+      <div class="gm-modal-title-wrap">
+        <h4 class="gm-rental-modal-title">🛍️ Your Rental Bag</h4>
+        <span class="gm-modal-items-count">0 items</span>
+      </div>
+      <button type="button" class="gm-rental-modal-close" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="gm-rental-modal-alert">
+      ✨ <strong>Great match!</strong> You can rent outfits & matching jewellery together in a single checkout.
+    </div>
+
+    <div class="gm-rental-modal-body">
+      <div class="gm-rental-items-list">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <div class="gm-rental-modal-summary">
+        <div class="gm-summary-row">
+          <span>Estimated Rental Total</span>
+          <strong class="gm-modal-total-price">₹0</strong>
+        </div>
+        <div class="gm-summary-row gm-deposit-sub">
+          <span>Refundable Security Deposit</span>
+          <span class="gm-modal-total-deposit">₹0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="gm-rental-modal-footer">
+      <button type="button" class="gm-btn-continue">
+        🛍️ Browse & Add More Items
+      </button>
+      <button type="button" class="gm-btn-checkout">
+        Proceed to Checkout ➔
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING STICKY RENTAL BAR (Visible on all product pages when items are in rental bag) -->
+<div class="gm-rental-floating-bar" id="gm-rental-floating-{{ section.id }}" style="display: none;">
+  <div class="gm-floating-content">
+    <div class="gm-floating-badge">
+      <span class="gm-floating-icon">👗💍</span>
+      <span class="gm-floating-text">
+        <strong>Rental Bag:</strong> <span class="gm-floating-count">1 item</span>
+      </span>
+    </div>
+    <div class="gm-floating-actions">
+      <button type="button" class="gm-floating-view-btn">View Bag</button>
+      <button type="button" class="gm-floating-checkout-btn">Checkout All ➔</button>
+    </div>
   </div>
 </div>
 
@@ -191,13 +281,31 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
   }
 
+  #gm-rental-{{ section.id }} .gm-rental-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
   #gm-rental-{{ section.id }} .gm-rental-header h3 {
-    margin: 0 0 6px;
+    margin: 0;
     font-size: 22px;
     font-weight: 700;
     color: var(--color-foreground, currentColor);
     font-family: inherit;
     letter-spacing: -0.02em;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-badge {
+    background: rgba(121, 100, 255, 0.14);
+    color: #7964FF;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-header p {
@@ -206,6 +314,34 @@
     opacity: 0.75;
     font-size: 14px;
     font-family: inherit;
+  }
+
+  /* Sync Banner */
+  #gm-rental-{{ section.id }} .gm-rental-sync-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(121, 100, 255, 0.08);
+    border: 1px dashed #7964FF;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: var(--color-foreground, currentColor);
+  }
+
+  #gm-rental-{{ section.id }} .gm-sync-reset {
+    background: transparent;
+    border: 0;
+    color: #7964FF;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  #gm-rental-{{ section.id }} .gm-sync-reset:hover {
+    background: rgba(121, 100, 255, 0.15);
   }
 
   #gm-rental-{{ section.id }} .gm-rental-price,
@@ -283,16 +419,17 @@
     margin-top: 18px;
   }
 
-  #gm-rental-{{ section.id }} .gm-rental-whatsapp,
-  #gm-rental-{{ section.id }} .gm-rental-book {
+  /* Button 1: Add to Rental Bag */
+  #gm-rental-{{ section.id }} .gm-rental-add-bag {
     width: 100%;
     min-height: 50px;
-    border: 0;
+    border: 2px solid #7964FF;
+    background: rgba(121, 100, 255, 0.06);
+    color: #7964FF;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    text-decoration: none;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
@@ -301,17 +438,32 @@
     font-family: inherit;
   }
 
-  #gm-rental-{{ section.id }} .gm-rental-whatsapp {
-    background: #25D366;
+  #gm-rental-{{ section.id }} .gm-rental-add-bag:hover {
+    background: #7964FF;
     color: #FFFFFF;
-    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+    box-shadow: 0 4px 14px rgba(121, 100, 255, 0.3);
   }
 
-  #gm-rental-{{ section.id }} .gm-rental-whatsapp:hover {
-    background: #20BA5A;
+  #gm-rental-{{ section.id }} .gm-rental-add-bag:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
+  /* Button 2: Direct Book & Checkout */
   #gm-rental-{{ section.id }} .gm-rental-book {
+    width: 100%;
+    min-height: 50px;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    font-family: inherit;
     background: var(--color-button, var(--color-base-accent-1, #2E3346));
     color: var(--color-button-text, #FFFFFF);
   }
@@ -326,6 +478,31 @@
     filter: none;
   }
 
+  /* Button 3: WhatsApp */
+  #gm-rental-{{ section.id }} .gm-rental-whatsapp {
+    width: 100%;
+    min-height: 48px;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    background: #25D366;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-whatsapp:hover {
+    background: #20BA5A;
+  }
+
   #gm-rental-{{ section.id }} .gm-rental-note {
     margin-top: 14px;
     font-size: 12px;
@@ -334,9 +511,276 @@
     line-height: 1.5;
   }
 
+  /* MODAL STYLES */
+  .gm-rental-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .gm-rental-modal-dialog {
+    background: var(--gradient-background, var(--color-background, #FFFFFF));
+    color: var(--color-foreground, #2E3346);
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 14px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: gmFadeIn 0.25s ease;
+  }
+
+  @keyframes gmFadeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .gm-rental-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  }
+
+  .gm-rental-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .gm-modal-items-count {
+    font-size: 13px;
+    color: #7964FF;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+
+  .gm-rental-modal-close {
+    background: transparent;
+    border: 0;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--color-foreground, currentColor);
+    opacity: 0.7;
+  }
+  .gm-rental-modal-close:hover { opacity: 1; }
+
+  .gm-rental-modal-alert {
+    background: rgba(121, 100, 255, 0.1);
+    color: var(--color-foreground, currentColor);
+    padding: 10px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(121, 100, 255, 0.2);
+  }
+
+  .gm-rental-modal-body {
+    padding: 18px 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .gm-rental-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .gm-bag-item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 8px;
+    background: rgba(128, 128, 128, 0.05);
+  }
+
+  .gm-bag-item-info h5 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .gm-bag-item-dates {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+  }
+
+  .gm-bag-item-meta {
+    font-size: 12px;
+    color: #7964FF;
+    font-weight: 600;
+  }
+
+  .gm-bag-item-actions {
+    text-align: right;
+  }
+
+  .gm-bag-item-price {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .gm-bag-remove-btn {
+    background: transparent;
+    border: 0;
+    color: #e11d48;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  .gm-rental-modal-summary {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+  }
+
+  .gm-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .gm-deposit-sub {
+    font-size: 13px;
+    opacity: 0.8;
+  }
+
+  .gm-rental-modal-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px 22px;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+  }
+
+  .gm-btn-continue {
+    background: transparent;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    color: var(--color-foreground, currentColor);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .gm-btn-continue:hover {
+    background: rgba(128, 128, 128, 0.1);
+  }
+
+  .gm-btn-checkout {
+    background: #7964FF;
+    border: 0;
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(121, 100, 255, 0.35);
+  }
+  .gm-btn-checkout:hover {
+    filter: brightness(1.08);
+  }
+
+  /* STICKY FLOATING RENTAL BAR */
+  .gm-rental-floating-bar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    background: var(--gradient-background, var(--color-background, #2E3346));
+    color: var(--color-button-text, #FFFFFF);
+    border: 1px solid rgba(121, 100, 255, 0.4);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    border-radius: 50px;
+    padding: 8px 16px;
+    animation: gmPopUp 0.3s ease;
+  }
+
+  @keyframes gmPopUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .gm-floating-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .gm-floating-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .gm-floating-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gm-floating-view-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 0;
+    color: inherit;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .gm-floating-checkout-btn {
+    background: #7964FF;
+    border: 0;
+    color: #FFFFFF;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   @media (max-width: 600px) {
     #gm-rental-{{ section.id }} .gm-rental-dates {
       grid-template-columns: 1fr;
+    }
+    .gm-rental-modal-footer {
+      grid-template-columns: 1fr;
+    }
+    .gm-rental-floating-bar {
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .gm-floating-content {
+      justify-content: space-between;
+      width: 100%;
     }
   }
 </style>
@@ -344,7 +788,6 @@
 <script>
 (function() {
   const root = document.getElementById('gm-rental-{{ section.id }}');
-
   if (!root) return;
 
   const pickup = root.querySelector('.gm-rental-pickup');
@@ -354,9 +797,16 @@
   const emailInput = root.querySelector('.gm-rental-email');
   const notesInput = root.querySelector('.gm-rental-notes');
 
+  const syncBanner = root.querySelector('.gm-rental-sync-banner');
+  const syncReset = root.querySelector('.gm-sync-reset');
+
   const message = root.querySelector('.gm-rental-message');
-  const whatsapp = root.querySelector('.gm-rental-whatsapp');
+  const addBagBtn = root.querySelector('.gm-rental-add-bag');
   const bookButton = root.querySelector('.gm-rental-book');
+  const whatsapp = root.querySelector('.gm-rental-whatsapp');
+
+  const modal = document.getElementById('gm-rental-modal-{{ section.id }}');
+  const floatingBar = document.getElementById('gm-rental-floating-{{ section.id }}');
 
   const productName = {{ product.title | json }};
   const productIdStr = String({{ product.id | json }});
@@ -364,6 +814,8 @@
   const rentalPrice = {{ block.settings.rental_price | json }};
   const deposit = {{ block.settings.deposit | json }};
   const whatsappNumber = {{ block.settings.whatsapp_number | json }};
+
+  const STORAGE_KEY = 'gm_rental_session_data';
 
   function showMessage(text, isError) {
     message.style.display = 'block';
@@ -378,12 +830,68 @@
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-
     return `${year}-${month}-${day}`;
   }
 
   if (pickup) pickup.min = todayString();
   if (returnDate) returnDate.min = todayString();
+
+  // 1. SMART DATE & CUSTOMER SYNCHRONIZATION (Across Lehenga, Jewellery, etc.)
+  function loadSessionData() {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+
+      let synced = false;
+      if (data.pickup && pickup && !pickup.value) {
+        pickup.value = data.pickup;
+        synced = true;
+      }
+      if (data.returnDate && returnDate && !returnDate.value) {
+        returnDate.value = data.returnDate;
+        returnDate.min = data.pickup;
+        synced = true;
+      }
+      if (data.name && nameInput && !nameInput.value) {
+        nameInput.value = data.name;
+      }
+      if (data.phone && phoneInput && !phoneInput.value) {
+        phoneInput.value = data.phone;
+      }
+      if (data.email && emailInput && !emailInput.value) {
+        emailInput.value = data.email;
+      }
+
+      if (synced && syncBanner) {
+        syncBanner.style.display = 'flex';
+        checkAvailabilityApi();
+      }
+    } catch (e) {}
+  }
+
+  function saveSessionData() {
+    try {
+      const payload = {
+        pickup: pickup.value,
+        returnDate: returnDate.value,
+        name: nameInput.value.trim(),
+        phone: phoneInput.value.trim(),
+        email: emailInput.value.trim(),
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {}
+  }
+
+  if (syncReset) {
+    syncReset.addEventListener('click', function() {
+      sessionStorage.removeItem(STORAGE_KEY);
+      if (syncBanner) syncBanner.style.display = 'none';
+      if (pickup) pickup.value = '';
+      if (returnDate) returnDate.value = '';
+      message.style.display = 'none';
+    });
+  }
 
   if (pickup) {
     pickup.addEventListener('change', function() {
@@ -393,22 +901,28 @@
           returnDate.value = '';
         }
       }
+      saveSessionData();
       checkAvailabilityApi();
     });
   }
 
   if (returnDate) {
     returnDate.addEventListener('change', function() {
+      saveSessionData();
       checkAvailabilityApi();
     });
   }
+
+  [nameInput, phoneInput, emailInput].forEach(inp => {
+    if (inp) inp.addEventListener('input', saveSessionData);
+  });
 
   async function checkAvailabilityApi() {
     if (!pickup.value || !returnDate.value) return;
 
     if (returnDate.value < pickup.value) {
       showMessage('Return date must be on or after pickup date.', true);
-      if (bookButton) bookButton.disabled = true;
+      setButtonsDisabled(true);
       return;
     }
 
@@ -434,19 +948,24 @@
         const data = await res.json();
         if (data.isAvailable) {
           showMessage('This ' + itemType.toLowerCase() + ' is AVAILABLE for your selected dates! 🎉', false);
-          if (bookButton) bookButton.disabled = false;
+          setButtonsDisabled(false);
         } else {
           showMessage(data.message || (itemType + ' is UNAVAILABLE for these dates.'), true);
-          if (bookButton) bookButton.disabled = true;
+          setButtonsDisabled(true);
         }
       } else {
-        showMessage('Dates selected. Availability will be confirmed upon checkout.', false);
-        if (bookButton) bookButton.disabled = false;
+        showMessage('Dates selected. Ready to add to your rental bag.', false);
+        setButtonsDisabled(false);
       }
     } catch (err) {
       showMessage('Dates selected. Fill in your details and proceed.', false);
-      if (bookButton) bookButton.disabled = false;
+      setButtonsDisabled(false);
     }
+  }
+
+  function setButtonsDisabled(disabled) {
+    if (addBagBtn) addBagBtn.disabled = disabled;
+    if (bookButton) bookButton.disabled = disabled;
   }
 
   function validateForm() {
@@ -454,25 +973,157 @@
       showMessage('Please select pickup and return dates.', true);
       return false;
     }
-
     if (returnDate.value < pickup.value) {
       showMessage('Return date must be on or after pickup date.', true);
       return false;
     }
-
     if (!nameInput.value.trim()) {
       showMessage('Please enter your name.', true);
       return false;
     }
-
     if (!phoneInput.value.trim()) {
       showMessage('Please enter your phone number.', true);
       return false;
     }
-
     return true;
   }
 
+  // Common Reservation Engine
+  async function submitReservation() {
+    const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+    const payload = {
+      shop,
+      customerName: nameInput.value.trim(),
+      customerPhone: phoneInput.value.trim(),
+      customerEmail: emailInput.value.trim(),
+      productId: productIdStr,
+      productTitle: productName,
+      pickupDate: pickup.value,
+      returnDate: returnDate.value,
+      notes: notesInput.value.trim(),
+      rentalPrice: parseFloat(String(rentalPrice).replace(/[^\d.]/g, '')) || 0,
+      securityDeposit: parseFloat(String(deposit).replace(/[^\d.]/g, '')) || 0,
+    };
+
+    const primaryUrl = '/apps/gm-rental/api/storefront-booking';
+    const fallbackUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
+
+    let res;
+    try {
+      res = await fetch(primaryUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      res = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
+  async function addProductToShopifyCart(bookingId) {
+    let variantId = {{ product.selected_or_first_available_variant.id | json }};
+    const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') || document.querySelector('[name="id"]');
+    if (variantField && variantField.value) {
+      variantId = variantField.value;
+    }
+
+    const cartPayload = {
+      items: [{
+        id: variantId,
+        quantity: 1,
+        properties: {
+          'Rental Pickup Date': pickup.value,
+          'Rental Return Date': returnDate.value,
+          'Rental Booking ID': bookingId || '',
+          'Security Deposit': deposit || '₹2,000',
+          'Item Type': itemType,
+          'Booking Type': 'Rental'
+        }
+      }]
+    };
+
+    const cartRes = await fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cartPayload)
+    });
+
+    return await cartRes.json();
+  }
+
+  // 2. ACTION: ADD TO RENTAL BAG (MULTI-ITEM WORKFLOW)
+  if (addBagBtn) {
+    addBagBtn.addEventListener('click', async function() {
+      if (!validateForm()) return;
+
+      addBagBtn.disabled = true;
+      if (bookButton) bookButton.disabled = true;
+      showMessage('Adding ' + itemType.toLowerCase() + ' to your Rental Bag...', false);
+
+      try {
+        saveSessionData();
+        const { ok, data } = await submitReservation();
+
+        if (ok && data.success) {
+          await addProductToShopifyCart(data.bookingId);
+          showMessage('🎉 ' + itemType + ' added to Rental Bag!', false);
+          addBagBtn.disabled = false;
+          if (bookButton) bookButton.disabled = false;
+
+          // Open Multi-item Rental Bag Modal
+          openRentalBagModal();
+          updateFloatingBar();
+        } else {
+          showMessage('❌ ' + (data.error || 'Could not add to rental bag.'), true);
+          setButtonsDisabled(false);
+        }
+      } catch (err) {
+        showMessage('❌ Error adding item to cart. Please try again.', true);
+        setButtonsDisabled(false);
+      }
+    });
+  }
+
+  // 3. ACTION: INSTANT 1-CLICK CHECKOUT
+  if (bookButton) {
+    bookButton.addEventListener('click', async function() {
+      if (!validateForm()) return;
+
+      bookButton.disabled = true;
+      if (addBagBtn) addBagBtn.disabled = true;
+      showMessage('Reserving your ' + itemType.toLowerCase() + ' & heading to checkout...', false);
+
+      try {
+        saveSessionData();
+        const { ok, data } = await submitReservation();
+
+        if (ok && data.success) {
+          try {
+            await addProductToShopifyCart(data.bookingId);
+            window.location.href = '/checkout';
+            return;
+          } catch (e) {
+            window.location.href = '/checkout';
+          }
+        } else {
+          showMessage('❌ ' + (data.error || 'Failed to reserve booking.'), true);
+          setButtonsDisabled(false);
+        }
+      } catch (err) {
+        showMessage('❌ Server connection error. Please try again.', true);
+        setButtonsDisabled(false);
+      }
+    });
+  }
+
+  // 4. ACTION: WHATSAPP BOOKING
   if (whatsapp) {
     whatsapp.addEventListener('click', function(event) {
       event.preventDefault();
@@ -495,105 +1146,133 @@
         'Return Date: ' + returnDate.value,
         'Notes: ' + (notesInput.value.trim() || 'None'),
         '',
-        'Please confirm availability & booking.'
-      ].join('\n');
+        'Please confirm availability & multi-item booking.'
+      ].join('
+');
 
       window.open('https://wa.me/' + cleanNumber + '?text=' + encodeURIComponent(msg), '_blank');
     });
   }
 
-  if (bookButton) {
-    bookButton.addEventListener('click', async function() {
-      if (!validateForm()) return;
+  // 5. RENTAL BAG MODAL & FLOATING BAR CONTROLLER
+  async function fetchRentalCart() {
+    try {
+      const res = await fetch('/cart.js');
+      const cart = await res.json();
+      const rentalItems = (cart.items || []).filter(item => {
+        return item.properties && (item.properties['Booking Type'] === 'Rental' || item.properties['Rental Booking ID']);
+      });
+      return { cart, rentalItems };
+    } catch (e) {
+      return { cart: null, rentalItems: [] };
+    }
+  }
 
-      bookButton.disabled = true;
-      showMessage('Reserving your ' + itemType.toLowerCase() + '...', false);
+  async function openRentalBagModal() {
+    if (!modal) return;
+    const { cart, rentalItems } = await fetchRentalCart();
 
-      try {
-        const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
-        const payload = {
-          shop,
-          customerName: nameInput.value.trim(),
-          customerPhone: phoneInput.value.trim(),
-          customerEmail: emailInput.value.trim(),
-          productId: productIdStr,
-          productTitle: productName,
-          pickupDate: pickup.value,
-          returnDate: returnDate.value,
-          notes: notesInput.value.trim(),
-          rentalPrice: parseFloat(String(rentalPrice).replace(/[^\d.]/g, '')) || 0,
-          securityDeposit: parseFloat(String(deposit).replace(/[^\d.]/g, '')) || 0,
-        };
+    const listEl = modal.querySelector('.gm-rental-items-list');
+    const countEl = modal.querySelector('.gm-modal-items-count');
+    const totalPriceEl = modal.querySelector('.gm-modal-total-price');
+    const totalDepositEl = modal.querySelector('.gm-modal-total-deposit');
 
-        const primaryUrl = '/apps/gm-rental/api/storefront-booking';
-        const fallbackUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
+    if (countEl) countEl.textContent = rentalItems.length + (rentalItems.length === 1 ? ' item' : ' items');
 
-        let res;
-        try {
-          res = await fetch(primaryUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        } catch (e) {
-          res = await fetch(fallbackUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
+    if (listEl) {
+      if (rentalItems.length === 0) {
+        listEl.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px 0;">No rental items in bag yet.</p>';
+      } else {
+        listEl.innerHTML = rentalItems.map((item, idx) => {
+          const props = item.properties || {};
+          const pType = props['Item Type'] || 'Outfit';
+          const pPickup = props['Rental Pickup Date'] || 'N/A';
+          const pReturn = props['Rental Return Date'] || 'N/A';
+          const pDep = props['Security Deposit'] || '₹2,000';
+          const linePrice = (item.line_price / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
 
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showMessage('🎉 Booking reserved! Redirecting to checkout...', false);
+          return `
+            <div class="gm-bag-item-card">
+              <div class="gm-bag-item-info">
+                <h5>${escapeHtml(item.title)}</h5>
+                <div class="gm-bag-item-dates">📅 ${escapeHtml(pPickup)} to ${escapeHtml(pReturn)}</div>
+                <div class="gm-bag-item-meta">🏷️ ${escapeHtml(pType)} • Deposit: ${escapeHtml(pDep)}</div>
+              </div>
+              <div class="gm-bag-item-actions">
+                <div class="gm-bag-item-price">${linePrice}</div>
+                <button type="button" class="gm-bag-remove-btn" data-key="${item.key}">✕ Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('');
 
-          try {
-            let variantId = {{ product.selected_or_first_available_variant.id | json }};
-            const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') || document.querySelector('[name="id"]');
-            if (variantField && variantField.value) {
-              variantId = variantField.value;
-            }
-
-            const cartPayload = {
-              items: [{
-                id: variantId,
-                quantity: 1,
-                properties: {
-                  'Rental Pickup Date': pickup.value,
-                  'Rental Return Date': returnDate.value,
-                  'Rental Booking ID': data.bookingId || '',
-                  'Security Deposit': deposit || '₹2,000',
-                  'Item Type': itemType,
-                  'Booking Type': 'Rental'
-                }
-              }]
-            };
-
-            await fetch('/cart/add.js', {
+        // Attach remove handlers
+        listEl.querySelectorAll('.gm-bag-remove-btn').forEach(btn => {
+          btn.addEventListener('click', async function() {
+            const key = this.getAttribute('data-key');
+            await fetch('/cart/change.js', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cartPayload)
+              body: JSON.stringify({ id: key, quantity: 0 })
             });
-
-            window.location.href = '/checkout';
-            return;
-          } catch (cartErr) {
-            showMessage('🎉 ' + data.message, false);
-            nameInput.value = '';
-            phoneInput.value = '';
-            emailInput.value = '';
-            notesInput.value = '';
-          }
-        } else {
-          showMessage('❌ ' + (data.error || 'Failed to submit booking.'), true);
-          bookButton.disabled = false;
-        }
-      } catch (err) {
-        showMessage('❌ Server connection error. Please try again or use WhatsApp.', true);
-        bookButton.disabled = false;
+            await openRentalBagModal();
+            await updateFloatingBar();
+          });
+        });
       }
+    }
+
+    if (cart && totalPriceEl) {
+      totalPriceEl.textContent = (cart.total_price / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  if (modal) {
+    const closeBtn = modal.querySelector('.gm-rental-modal-close');
+    const continueBtn = modal.querySelector('.gm-btn-continue');
+    const checkoutBtn = modal.querySelector('.gm-btn-checkout');
+
+    if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
+    if (continueBtn) continueBtn.addEventListener('click', () => modal.style.display = 'none');
+    if (checkoutBtn) checkoutBtn.addEventListener('click', () => window.location.href = '/checkout');
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
     });
   }
+
+  async function updateFloatingBar() {
+    if (!floatingBar) return;
+    const { rentalItems } = await fetchRentalCart();
+
+    if (rentalItems.length > 0) {
+      const countLabel = floatingBar.querySelector('.gm-floating-count');
+      if (countLabel) {
+        countLabel.textContent = rentalItems.length + (rentalItems.length === 1 ? ' item' : ' items');
+      }
+      floatingBar.style.display = 'block';
+    } else {
+      floatingBar.style.display = 'none';
+    }
+  }
+
+  if (floatingBar) {
+    const viewBtn = floatingBar.querySelector('.gm-floating-view-btn');
+    const checkBtn = floatingBar.querySelector('.gm-floating-checkout-btn');
+    if (viewBtn) viewBtn.addEventListener('click', openRentalBagModal);
+    if (checkBtn) checkBtn.addEventListener('click', () => window.location.href = '/checkout');
+  }
+
+  // Initialize
+  loadSessionData();
+  updateFloatingBar();
 })();
 </script>
 
@@ -628,6 +1307,18 @@
     },
     {
       "type": "text",
+      "id": "add_to_bag_text",
+      "label": "Multi-Item Bag Button Text",
+      "default": "+ Add to Rental Bag (Rent More)"
+    },
+    {
+      "type": "text",
+      "id": "book_text",
+      "label": "Direct Checkout Button Text",
+      "default": "Book & Checkout Now"
+    },
+    {
+      "type": "text",
       "id": "whatsapp_number",
       "label": "WhatsApp Number",
       "default": "917869586698"
@@ -637,12 +1328,6 @@
       "id": "whatsapp_text",
       "label": "WhatsApp Button Text",
       "default": "Rent Through WhatsApp"
-    },
-    {
-      "type": "text",
-      "id": "book_text",
-      "label": "Book Button Text",
-      "default": "Book Now"
     },
     {
       "type": "textarea",
