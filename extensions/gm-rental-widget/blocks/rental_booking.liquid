@@ -51,10 +51,28 @@
   assign selected_variant = product.selected_or_first_available_variant | default: product.variants.first
 
   # Smart Per-Product Pricing Detection:
-  # 1. Product Metafields (rental.price or custom.rental_price)
-  # 2. Product Selling Price if use_product_price is enabled
-  # 3. Block settings fallback
-  assign initial_rental_price = product.metafields.rental.price | default: product.metafields.custom.rental_price
+  # 1. Product Metafields (rental.price, custom.rental_price, custom.rent)
+  # 2. Product Tags (e.g., rent:5000, rental:5000, rent_5000)
+  # 3. Product Selling Price if use_product_price is enabled
+  # 4. Block settings fallback
+  assign initial_rental_price = product.metafields.rental.price | default: product.metafields.custom.rental_price | default: product.metafields.custom.rent
+  if initial_rental_price == blank
+    for tag in product.tags
+      assign tag_lower = tag | downcase | strip
+      if tag_lower contains 'rent:' or tag_lower contains 'rental:' or tag_lower contains 'rent_' or tag_lower contains 'rental_'
+        if tag_lower contains ':'
+          assign tag_price_val = tag | split: ':' | last | strip
+        else
+          assign tag_price_val = tag | split: '_' | last | strip
+        endif
+        if tag_price_val != blank
+          assign initial_rental_price = tag_price_val
+          break
+        endif
+      endif
+    endfor
+  endif
+
   if initial_rental_price == blank
     if block.settings.use_product_price and product.price > 0
       assign initial_rental_price = product.price | money
@@ -63,13 +81,39 @@
     endif
   endif
 
+  unless initial_rental_price contains "₹" or initial_rental_price contains "Rs" or initial_rental_price contains "$"
+    assign initial_rental_price = "₹" | append: initial_rental_price
+  endunless
+
   # Smart Per-Product Deposit Detection:
-  # 1. Product Metafields (rental.deposit or custom.security_deposit)
-  # 2. Block settings fallback
-  assign initial_deposit = product.metafields.rental.deposit | default: product.metafields.custom.security_deposit
+  # 1. Product Metafields (rental.deposit, custom.security_deposit, custom.deposit)
+  # 2. Product Tags (e.g., deposit:3000, security:2500, deposit_1500, security_1500)
+  # 3. Block settings fallback
+  assign initial_deposit = product.metafields.rental.deposit | default: product.metafields.custom.security_deposit | default: product.metafields.custom.deposit
+  if initial_deposit == blank
+    for tag in product.tags
+      assign tag_lower = tag | downcase | strip
+      if tag_lower contains 'deposit:' or tag_lower contains 'security:' or tag_lower contains 'deposit_' or tag_lower contains 'security_'
+        if tag_lower contains ':'
+          assign tag_dep_val = tag | split: ':' | last | strip
+        else
+          assign tag_dep_val = tag | split: '_' | last | strip
+        endif
+        if tag_dep_val != blank
+          assign initial_deposit = tag_dep_val
+          break
+        endif
+      endif
+    endfor
+  endif
+
   if initial_deposit == blank
     assign initial_deposit = block.settings.deposit | default: "₹2,000"
   endif
+
+  unless initial_deposit contains "₹" or initial_deposit contains "Rs" or initial_deposit contains "$"
+    assign initial_deposit = "₹" | append: initial_deposit
+  endunless
 %}
 
 <div class="gm-rental-widget" id="gm-rental-{{ section.id }}">

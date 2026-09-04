@@ -52,15 +52,6 @@ export const loader = async ({ request }) => {
         securityDeposit = pConfig.securityDeposit;
       }
     }
-
-    if (securityDeposit === null) {
-      const settings = await prisma.rentalSettings.findUnique({
-        where: { shop },
-      });
-      if (settings && settings.defaultDeposit) {
-        securityDeposit = settings.defaultDeposit;
-      }
-    }
   } catch (e) {
     console.warn("Error fetching product rental config:", e);
   }
