@@ -1,9 +1,60 @@
+{% liquid
+  assign item_type = "Outfit"
+  assign p_title_lower = product.title | downcase
+  assign p_type_lower = product.type | downcase
+
+  if product.type != blank
+    assign item_type = product.type
+  endif
+
+  if p_title_lower contains 'jewel' or p_title_lower contains 'necklace' or p_title_lower contains 'choker' or p_title_lower contains 'earring' or p_title_lower contains 'kundan' or p_title_lower contains 'bangle' or p_type_lower contains 'jewel'
+    assign item_type = "Jewellery"
+  elsif p_title_lower contains 'lehenga' or p_title_lower contains 'choli' or p_type_lower contains 'lehenga'
+    assign item_type = "Lehenga"
+  elsif p_title_lower contains 'sherwani' or p_title_lower contains 'kurta' or p_title_lower contains 'indo-western' or p_type_lower contains 'sherwani'
+    assign item_type = "Sherwani"
+  elsif p_title_lower contains 'saree' or p_title_lower contains 'sari' or p_type_lower contains 'saree'
+    assign item_type = "Saree"
+  elsif p_title_lower contains 'gown' or p_type_lower contains 'gown'
+    assign item_type = "Gown"
+  elsif p_title_lower contains 'anarkali' or p_type_lower contains 'anarkali'
+    assign item_type = "Anarkali"
+  elsif p_title_lower contains 'suit' or p_title_lower contains 'tuxedo' or p_type_lower contains 'suit'
+    assign item_type = "Suit"
+  else
+    for collection in product.collections
+      assign col_title = collection.title | downcase
+      if col_title contains 'jewel'
+        assign item_type = "Jewellery"
+        break
+      elsif col_title contains 'lehenga'
+        assign item_type = "Lehenga"
+        break
+      elsif col_title contains 'sherwani'
+        assign item_type = "Sherwani"
+        break
+      elsif col_title contains 'saree'
+        assign item_type = "Saree"
+        break
+      elsif col_title contains 'gown'
+        assign item_type = "Gown"
+        break
+      endif
+    endfor
+  endif
+
+  assign widget_heading = "Rent This " | append: item_type
+  if block.settings.heading != blank and block.settings.heading != "Rent This Outfit"
+    assign widget_heading = block.settings.heading
+  endif
+%}
+
 <div class="gm-rental-widget" id="gm-rental-{{ section.id }}">
   <div class="gm-rental-card">
 
     <div class="gm-rental-header">
-      <h3>{{ block.settings.heading }}</h3>
-      <p>{{ block.settings.subheading }}</p>
+      <h3 class="gm-rental-title">{{ widget_heading }}</h3>
+      <p class="gm-rental-sub">{{ block.settings.subheading }}</p>
     </div>
 
     <div class="gm-rental-price">
@@ -46,7 +97,6 @@
 
     </div>
 
-    {/* Customer Booking Input Fields */}
     <div class="gm-rental-customer-form" style="margin-top: 14px;">
 
       <div class="gm-rental-field" style="margin-bottom: 10px;">
@@ -82,7 +132,7 @@
       </div>
 
       <div class="gm-rental-field" style="margin-bottom: 10px;">
-        <label for="gm-notes-{{ section.id }}">Fitting / Event Notes (Optional)</label>
+        <label for="gm-notes-{{ section.id }}">Measurements / Fitting Notes (Optional)</label>
         <input
           type="text"
           id="gm-notes-{{ section.id }}"
@@ -126,38 +176,60 @@
 
 <style>
   #gm-rental-{{ section.id }} {
-    margin: 20px 0;
+    margin: 24px 0;
+    font-family: inherit;
   }
 
+  /* Adaptive card adapting to store's light/dark themes */
   #gm-rental-{{ section.id }} .gm-rental-card {
-    border: 1px solid #e5e5e5;
+    border: 1px solid rgba(128, 128, 128, 0.28);
     border-radius: 12px;
-    padding: 20px;
-    background: #fff;
+    padding: 22px;
+    background: var(--gradient-background, var(--color-background, transparent));
+    backdrop-filter: blur(8px);
+    color: var(--color-foreground, currentColor);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
   }
 
   #gm-rental-{{ section.id }} .gm-rental-header h3 {
     margin: 0 0 6px;
     font-size: 22px;
+    font-weight: 700;
+    color: var(--color-foreground, currentColor);
+    font-family: inherit;
+    letter-spacing: -0.02em;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-header p {
-    margin: 0 0 18px;
-    color: #666;
+    margin: 0 0 16px;
+    color: var(--color-foreground, currentColor);
+    opacity: 0.75;
     font-size: 14px;
+    font-family: inherit;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-price,
   #gm-rental-{{ section.id }} .gm-rental-deposit {
     display: flex;
-    justify: space-between;
+    justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    color: var(--color-foreground, currentColor);
+    font-size: 15px;
   }
 
-  #gm-rental-{{ section.id }} .gm-rental-price strong {
+  #gm-rental-{{ section.id }} .gm-rental-price span,
+  #gm-rental-{{ section.id }} .gm-rental-deposit span {
+    opacity: 0.9;
+    font-weight: 500;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-price strong,
+  #gm-rental-{{ section.id }} .gm-rental-deposit strong {
     font-size: 20px;
+    font-weight: 700;
+    color: var(--color-foreground, currentColor);
   }
 
   #gm-rental-{{ section.id }} .gm-rental-dates {
@@ -169,25 +241,37 @@
 
   #gm-rental-{{ section.id }} .gm-rental-field label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
     font-size: 13px;
     font-weight: 600;
+    color: var(--color-foreground, currentColor);
+    opacity: 0.92;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-field input {
     width: 100%;
-    min-height: 42px;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid rgba(128, 128, 128, 0.35);
     border-radius: 8px;
     font-size: 14px;
     box-sizing: border-box;
+    background: var(--gradient-background, var(--color-background, rgba(255, 255, 255, 0.05)));
+    color: var(--color-foreground, currentColor);
+    color-scheme: light dark;
+    font-family: inherit;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-field input:focus {
+    outline: none;
+    border-color: #7964FF;
+    box-shadow: 0 0 0 2px rgba(121, 100, 255, 0.25);
   }
 
   #gm-rental-{{ section.id }} .gm-rental-message {
     margin-top: 14px;
-    padding: 10px;
-    border-radius: 6px;
+    padding: 12px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     display: none;
@@ -195,14 +279,14 @@
 
   #gm-rental-{{ section.id }} .gm-rental-buttons {
     display: grid;
-    gap: 10px;
-    margin-top: 16px;
+    gap: 12px;
+    margin-top: 18px;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-whatsapp,
   #gm-rental-{{ section.id }} .gm-rental-book {
     width: 100%;
-    min-height: 48px;
+    min-height: 50px;
     border: 0;
     border-radius: 8px;
     display: flex;
@@ -210,30 +294,43 @@
     justify-content: center;
     text-decoration: none;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     box-sizing: border-box;
+    transition: all 0.2s ease;
+    font-family: inherit;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-whatsapp {
     background: #25D366;
-    color: #fff;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-whatsapp:hover {
+    background: #20BA5A;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-book {
-    background: #222;
-    color: #fff;
+    background: var(--color-button, var(--color-base-accent-1, #2E3346));
+    color: var(--color-button-text, #FFFFFF);
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-book:hover {
+    filter: brightness(0.92);
   }
 
   #gm-rental-{{ section.id }} .gm-rental-book:disabled {
-    background: #ccc;
+    opacity: 0.5;
     cursor: not-allowed;
+    filter: none;
   }
 
   #gm-rental-{{ section.id }} .gm-rental-note {
-    margin-top: 12px;
+    margin-top: 14px;
     font-size: 12px;
-    color: #777;
+    color: var(--color-foreground, currentColor);
+    opacity: 0.7;
     line-height: 1.5;
   }
 
@@ -263,6 +360,7 @@
 
   const productName = {{ product.title | json }};
   const productIdStr = String({{ product.id | json }});
+  const itemType = {{ item_type | json }};
   const rentalPrice = {{ block.settings.rental_price | json }};
   const deposit = {{ block.settings.deposit | json }};
   const whatsappNumber = {{ block.settings.whatsapp_number | json }};
@@ -314,7 +412,7 @@
       return;
     }
 
-    showMessage('Checking outfit availability...', false);
+    showMessage('Checking ' + itemType.toLowerCase() + ' availability...', false);
 
     try {
       const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
@@ -335,18 +433,18 @@
       if (res && res.ok) {
         const data = await res.json();
         if (data.isAvailable) {
-          showMessage('Outfit is AVAILABLE for selected dates! 🎉', false);
+          showMessage('This ' + itemType.toLowerCase() + ' is AVAILABLE for your selected dates! 🎉', false);
           if (bookButton) bookButton.disabled = false;
         } else {
-          showMessage(data.message || 'Outfit UNAVAILABLE for selected dates.', true);
+          showMessage(data.message || (itemType + ' is UNAVAILABLE for these dates.'), true);
           if (bookButton) bookButton.disabled = true;
         }
       } else {
-        showMessage('Dates selected. Availability will be confirmed upon submission.', false);
+        showMessage('Dates selected. Availability will be confirmed upon checkout.', false);
         if (bookButton) bookButton.disabled = false;
       }
     } catch (err) {
-      showMessage('Dates selected. Fill in your details and click Book Now.', false);
+      showMessage('Dates selected. Fill in your details and proceed.', false);
       if (bookButton) bookButton.disabled = false;
     }
   }
@@ -387,7 +485,8 @@
       }
 
       const msg = [
-        'Hello, I want to rent this outfit.',
+        'Hello NS Bridal & Groom Collection,',
+        'I want to rent this ' + itemType.toLowerCase() + '.',
         '',
         'Product: ' + productName,
         'Name: ' + nameInput.value.trim(),
@@ -408,7 +507,7 @@
       if (!validateForm()) return;
 
       bookButton.disabled = true;
-      showMessage('Submitting your rental booking request...', false);
+      showMessage('Reserving your ' + itemType.toLowerCase() + '...', false);
 
       try {
         const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
@@ -448,7 +547,6 @@
         if (res.ok && data.success) {
           showMessage('🎉 Booking reserved! Redirecting to checkout...', false);
 
-          // Add to Shopify Cart with rental line item properties
           try {
             let variantId = {{ product.selected_or_first_available_variant.id | json }};
             const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') || document.querySelector('[name="id"]');
@@ -465,6 +563,7 @@
                   'Rental Return Date': returnDate.value,
                   'Rental Booking ID': data.bookingId || '',
                   'Security Deposit': deposit || '₹2,000',
+                  'Item Type': itemType,
                   'Booking Type': 'Rental'
                 }
               }]
@@ -476,11 +575,9 @@
               body: JSON.stringify(cartPayload)
             });
 
-            // Redirect customer directly to Shopify Checkout
             window.location.href = '/checkout';
             return;
           } catch (cartErr) {
-            // If cart add fails, customer still has confirmed booking in GM Rental Manager
             showMessage('🎉 ' + data.message, false);
             nameInput.value = '';
             phoneInput.value = '';
@@ -508,7 +605,7 @@
     {
       "type": "text",
       "id": "heading",
-      "label": "Heading",
+      "label": "Heading (Leave blank for automatic smart category detection)",
       "default": "Rent This Outfit"
     },
     {
