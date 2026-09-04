@@ -54,12 +54,12 @@ export const action = async ({ request }) => {
     securityDeposit,
   } = body;
 
-  // 1. Input Validation
-  if (!shop || !customerName || !customerPhone || !productId || !pickupDate || !returnDate) {
+  // 1. Input Validation (Dates & Product required; Customer details collected on checkout page)
+  if (!shop || !productId || !pickupDate || !returnDate) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "Missing required fields: shop, customerName, customerPhone, productId, pickupDate, returnDate.",
+        error: "Missing required fields: shop, productId, pickupDate, returnDate.",
       }),
       { status: 400, headers: corsHeaders }
     );
@@ -101,22 +101,46 @@ export const action = async ({ request }) => {
     );
   }
 
-  // 3. Find or Create Customer
-  let customer = await prisma.customer.findUnique({
-    where: {
-      shop_phone: {
-        shop,
-        phone: String(customerPhone).trim(),
-      },
-    },
-  });
+  // 3. Find or Create Customer (Details collected at Checkout)
+  const cleanPhone = customerPhone && String(customerPhone).trim() ? String(customerPhone).trim() : null;
+  const cleanName = customerName && String(customerName).trim() ? String(customerName).trim() : "Online Customer";
 
-  if (!customer) {
-    customer = await prisma.customer.create({
-      data: {
+  let customer = null;
+  if (cleanPhone) {
+    customer = await prisma.customer.findUnique({
+      where: {
+        shop_phone: {
+          shop,
+          phone: cleanPhone,
+        },
+      },
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          shop,
+          name: cleanName,
+          phone: cleanPhone,
+          email: customerEmail ? String(customerEmail).trim() : null,
+        },
+      });
+    }
+  } else {
+    // Shared Storefront Guest profile for online rental reservations prior to checkout
+    const guestPhone = "STOREFRONT-CHECKOUT";
+    customer = await prisma.customer.upsert({
+      where: {
+        shop_phone: {
+          shop,
+          phone: guestPhone,
+        },
+      },
+      update: {},
+      create: {
         shop,
-        name: String(customerName).trim(),
-        phone: String(customerPhone).trim(),
+        name: "Storefront Online Customer",
+        phone: guestPhone,
         email: customerEmail ? String(customerEmail).trim() : null,
       },
     });
@@ -140,8 +164,8 @@ export const action = async ({ request }) => {
       productId: String(productId),
       productTitle: String(productTitle || "Outfit"),
       variantId: variantId ? String(variantId) : null,
-      customerName: String(customerName).trim(),
-      customerPhone: String(customerPhone).trim(),
+      customerName: cleanName,
+      customerPhone: cleanPhone || "Collected at Checkout",
       customerEmail: customerEmail ? String(customerEmail).trim() : null,
       pickupDate: pDate,
       returnDate: rDate,
