@@ -1,0 +1,523 @@
+<div class="gm-rental-widget" id="gm-rental-{{ section.id }}">
+  <div class="gm-rental-card">
+
+    <div class="gm-rental-header">
+      <h3>{{ block.settings.heading }}</h3>
+      <p>{{ block.settings.subheading }}</p>
+    </div>
+
+    <div class="gm-rental-price">
+      <span>Rental Price</span>
+      <strong>{{ block.settings.rental_price }}</strong>
+    </div>
+
+    {% if block.settings.deposit != blank %}
+      <div class="gm-rental-deposit">
+        <span>Security Deposit</span>
+        <strong>{{ block.settings.deposit }}</strong>
+      </div>
+    {% endif %}
+
+    <div class="gm-rental-dates">
+
+      <div class="gm-rental-field">
+        <label for="gm-pickup-{{ section.id }}">
+          Pickup Date *
+        </label>
+        <input
+          type="date"
+          id="gm-pickup-{{ section.id }}"
+          class="gm-rental-pickup"
+          required
+        >
+      </div>
+
+      <div class="gm-rental-field">
+        <label for="gm-return-{{ section.id }}">
+          Return Date *
+        </label>
+        <input
+          type="date"
+          id="gm-return-{{ section.id }}"
+          class="gm-rental-return"
+          required
+        >
+      </div>
+
+    </div>
+
+    {/* Customer Booking Input Fields */}
+    <div class="gm-rental-customer-form" style="margin-top: 14px;">
+
+      <div class="gm-rental-field" style="margin-bottom: 10px;">
+        <label for="gm-name-{{ section.id }}">Your Name *</label>
+        <input
+          type="text"
+          id="gm-name-{{ section.id }}"
+          class="gm-rental-name"
+          placeholder="e.g. Ananya Sharma"
+          required
+        >
+      </div>
+
+      <div class="gm-rental-field" style="margin-bottom: 10px;">
+        <label for="gm-phone-{{ section.id }}">Phone / WhatsApp *</label>
+        <input
+          type="tel"
+          id="gm-phone-{{ section.id }}"
+          class="gm-rental-phone"
+          placeholder="e.g. +91 98765 43210"
+          required
+        >
+      </div>
+
+      <div class="gm-rental-field" style="margin-bottom: 10px;">
+        <label for="gm-email-{{ section.id }}">Email Address (Optional)</label>
+        <input
+          type="email"
+          id="gm-email-{{ section.id }}"
+          class="gm-rental-email"
+          placeholder="e.g. customer@example.com"
+        >
+      </div>
+
+      <div class="gm-rental-field" style="margin-bottom: 10px;">
+        <label for="gm-notes-{{ section.id }}">Fitting / Event Notes (Optional)</label>
+        <input
+          type="text"
+          id="gm-notes-{{ section.id }}"
+          class="gm-rental-notes"
+          placeholder="Size preference, event date, measurements..."
+        >
+      </div>
+
+    </div>
+
+    <div class="gm-rental-message" aria-live="polite"></div>
+
+    <div class="gm-rental-buttons">
+
+      {% if block.settings.whatsapp_number != blank %}
+        <a
+          href="#"
+          class="gm-rental-whatsapp"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ block.settings.whatsapp_text }}
+        </a>
+      {% endif %}
+
+      <button
+        type="button"
+        class="gm-rental-book"
+      >
+        {{ block.settings.book_text }}
+      </button>
+
+    </div>
+
+    <div class="gm-rental-note">
+      {{ block.settings.note }}
+    </div>
+
+  </div>
+</div>
+
+<style>
+  #gm-rental-{{ section.id }} {
+    margin: 20px 0;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 20px;
+    background: #fff;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-header h3 {
+    margin: 0 0 6px;
+    font-size: 22px;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-header p {
+    margin: 0 0 18px;
+    color: #666;
+    font-size: 14px;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-price,
+  #gm-rental-{{ section.id }} .gm-rental-deposit {
+    display: flex;
+    justify: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-price strong {
+    font-size: 20px;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-field input {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-message {
+    margin-top: 14px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: none;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-buttons {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-whatsapp,
+  #gm-rental-{{ section.id }} .gm-rental-book {
+    width: 100%;
+    min-height: 48px;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-whatsapp {
+    background: #25D366;
+    color: #fff;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-book {
+    background: #222;
+    color: #fff;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-book:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+
+  #gm-rental-{{ section.id }} .gm-rental-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #777;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 600px) {
+    #gm-rental-{{ section.id }} .gm-rental-dates {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+(function() {
+  const root = document.getElementById('gm-rental-{{ section.id }}');
+
+  if (!root) return;
+
+  const pickup = root.querySelector('.gm-rental-pickup');
+  const returnDate = root.querySelector('.gm-rental-return');
+  const nameInput = root.querySelector('.gm-rental-name');
+  const phoneInput = root.querySelector('.gm-rental-phone');
+  const emailInput = root.querySelector('.gm-rental-email');
+  const notesInput = root.querySelector('.gm-rental-notes');
+
+  const message = root.querySelector('.gm-rental-message');
+  const whatsapp = root.querySelector('.gm-rental-whatsapp');
+  const bookButton = root.querySelector('.gm-rental-book');
+
+  const productName = {{ product.title | json }};
+  const productIdStr = String({{ product.id | json }});
+  const rentalPrice = {{ block.settings.rental_price | json }};
+  const deposit = {{ block.settings.deposit | json }};
+  const whatsappNumber = {{ block.settings.whatsapp_number | json }};
+
+  function showMessage(text, isError) {
+    message.style.display = 'block';
+    message.textContent = text;
+    message.style.color = isError ? '#9f1239' : '#166534';
+    message.style.backgroundColor = isError ? '#ffe4e6' : '#e3f5e1';
+    message.style.border = isError ? '1px solid #fecdd3' : '1px solid #bbf7d0';
+  }
+
+  function todayString() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  if (pickup) pickup.min = todayString();
+  if (returnDate) returnDate.min = todayString();
+
+  if (pickup) {
+    pickup.addEventListener('change', function() {
+      if (returnDate) {
+        returnDate.min = pickup.value;
+        if (returnDate.value && returnDate.value < pickup.value) {
+          returnDate.value = '';
+        }
+      }
+      checkAvailabilityApi();
+    });
+  }
+
+  if (returnDate) {
+    returnDate.addEventListener('change', function() {
+      checkAvailabilityApi();
+    });
+  }
+
+  async function checkAvailabilityApi() {
+    if (!pickup.value || !returnDate.value) return;
+
+    if (returnDate.value < pickup.value) {
+      showMessage('Return date must be on or after pickup date.', true);
+      if (bookButton) bookButton.disabled = true;
+      return;
+    }
+
+    showMessage('Checking outfit availability...', false);
+
+    try {
+      const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+      const primaryUrl = '/apps/gm-rental/api/availability';
+      const fallbackUrl = 'https://ns-rental-manager.onrender.com/api/availability';
+      const queryString = '?shop=' + encodeURIComponent(shop) +
+        '&productId=' + encodeURIComponent(productIdStr) +
+        '&pickupDate=' + encodeURIComponent(pickup.value) +
+        '&returnDate=' + encodeURIComponent(returnDate.value);
+
+      let res;
+      try {
+        res = await fetch(primaryUrl + queryString);
+      } catch (err) {
+        res = await fetch(fallbackUrl + queryString);
+      }
+
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.isAvailable) {
+          showMessage('Outfit is AVAILABLE for selected dates! 🎉', false);
+          if (bookButton) bookButton.disabled = false;
+        } else {
+          showMessage(data.message || 'Outfit UNAVAILABLE for selected dates.', true);
+          if (bookButton) bookButton.disabled = true;
+        }
+      } else {
+        showMessage('Dates selected. Availability will be confirmed upon submission.', false);
+        if (bookButton) bookButton.disabled = false;
+      }
+    } catch (err) {
+      showMessage('Dates selected. Fill in your details and click Book Now.', false);
+      if (bookButton) bookButton.disabled = false;
+    }
+  }
+
+  function validateForm() {
+    if (!pickup.value || !returnDate.value) {
+      showMessage('Please select pickup and return dates.', true);
+      return false;
+    }
+
+    if (returnDate.value < pickup.value) {
+      showMessage('Return date must be on or after pickup date.', true);
+      return false;
+    }
+
+    if (!nameInput.value.trim()) {
+      showMessage('Please enter your name.', true);
+      return false;
+    }
+
+    if (!phoneInput.value.trim()) {
+      showMessage('Please enter your phone number.', true);
+      return false;
+    }
+
+    return true;
+  }
+
+  if (whatsapp) {
+    whatsapp.addEventListener('click', function(event) {
+      event.preventDefault();
+      if (!validateForm()) return;
+
+      const cleanNumber = String(whatsappNumber).replace(/\D/g, '');
+      if (!cleanNumber) {
+        showMessage('WhatsApp number is not configured.', true);
+        return;
+      }
+
+      const msg = [
+        'Hello, I want to rent this outfit.',
+        '',
+        'Product: ' + productName,
+        'Name: ' + nameInput.value.trim(),
+        'Phone: ' + phoneInput.value.trim(),
+        'Pickup Date: ' + pickup.value,
+        'Return Date: ' + returnDate.value,
+        'Notes: ' + (notesInput.value.trim() || 'None'),
+        '',
+        'Please confirm availability & booking.'
+      ].join('\n');
+
+      window.open('https://wa.me/' + cleanNumber + '?text=' + encodeURIComponent(msg), '_blank');
+    });
+  }
+
+  if (bookButton) {
+    bookButton.addEventListener('click', async function() {
+      if (!validateForm()) return;
+
+      bookButton.disabled = true;
+      showMessage('Submitting your rental booking request...', false);
+
+      try {
+        const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+        const payload = {
+          shop,
+          customerName: nameInput.value.trim(),
+          customerPhone: phoneInput.value.trim(),
+          customerEmail: emailInput.value.trim(),
+          productId: productIdStr,
+          productTitle: productName,
+          pickupDate: pickup.value,
+          returnDate: returnDate.value,
+          notes: notesInput.value.trim(),
+          rentalPrice: parseFloat(String(rentalPrice).replace(/[^\d.]/g, '')) || 0,
+          securityDeposit: parseFloat(String(deposit).replace(/[^\d.]/g, '')) || 0,
+        };
+
+        const primaryUrl = '/apps/gm-rental/api/storefront-booking';
+        const fallbackUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
+
+        let res;
+        try {
+          res = await fetch(primaryUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          res = await fetch(fallbackUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showMessage('🎉 ' + data.message, false);
+          // Clear inputs
+          nameInput.value = '';
+          phoneInput.value = '';
+          emailInput.value = '';
+          notesInput.value = '';
+        } else {
+          showMessage('❌ ' + (data.error || 'Failed to submit booking.'), true);
+          bookButton.disabled = false;
+        }
+      } catch (err) {
+        showMessage('❌ Server connection error. Please try again or use WhatsApp.', true);
+        bookButton.disabled = false;
+      }
+    });
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "GM Rental Booking",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Rent This Outfit"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Select your rental dates & enter your details"
+    },
+    {
+      "type": "text",
+      "id": "rental_price",
+      "label": "Rental Price",
+      "default": "₹5,500"
+    },
+    {
+      "type": "text",
+      "id": "deposit",
+      "label": "Security Deposit",
+      "default": "₹2,000"
+    },
+    {
+      "type": "text",
+      "id": "whatsapp_number",
+      "label": "WhatsApp Number",
+      "default": "917869586698"
+    },
+    {
+      "type": "text",
+      "id": "whatsapp_text",
+      "label": "WhatsApp Button Text",
+      "default": "Rent Through WhatsApp"
+    },
+    {
+      "type": "text",
+      "id": "book_text",
+      "label": "Book Button Text",
+      "default": "Book Now"
+    },
+    {
+      "type": "textarea",
+      "id": "note",
+      "label": "Note",
+      "default": "Our stylist will contact you after booking for size and measurement confirmation."
+    }
+  ]
+}
+{% endschema %}

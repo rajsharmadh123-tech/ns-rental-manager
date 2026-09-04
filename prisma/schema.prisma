@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+model Rental {
+  id              String   @id @default(cuid())
+  bookingId       String?  @unique
+  shop            String
+
+  productId       String
+  productTitle    String
+  variantId       String?
+
+  customerName    String
+  customerPhone   String
+  whatsappNumber  String?
+  customerEmail   String?
+  customerAddress String?
+
+  pickupDate      DateTime
+  returnDate      DateTime
+  actualReturnDate DateTime?
+
+  rentalPrice     Float
+  securityDeposit Float    @default(0)
+  discount        Float    @default(0)
+  finalAmount     Float    @default(0)
+
+  status          String   @default("PENDING")
+  paymentStatus   String   @default("UNPAID")
+
+  productCondition String?
+  damageFee        Float    @default(0)
+  lateFee          Float    @default(0)
+  refundableDeposit Float   @default(0)
+  depositDeduction Float    @default(0)
+  finalRefund      Float    @default(0)
+  returnNotes      String?
+
+  notes           String?
+
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  payments        RentalPayment[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  shop          String
+  name          String
+  phone         String
+  whatsapp      String?
+  email         String?
+  address       String?
+  rentals       Rental[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shop, phone])
+}
+
+model RentalPayment {
+  id            String   @id @default(cuid())
+  rentalId      String
+  rental        Rental   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentType   String
+  paymentMethod String
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model RentalProductConfig {
+  id              String   @id @default(cuid())
+  shop            String
+  productId       String
+  variantId       String?  @default("")
+  rentalPrice     Float
+  securityDeposit Float    @default(0)
+  isEnabled       Boolean  @default(true)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([shop, productId, variantId])
+}
+
+model RentalSettings {
+  id                  String   @id @default(cuid())
+  shop                String   @unique
+  businessName        String   @default("NS Bridal & Groom Collection")
+  phone               String?
+  whatsapp            String?
+  email               String?
+  address             String?
+  defaultDurationDays Int      @default(3)
+  defaultDeposit      Float    @default(2000)
+  lateFeePerDay       Float    @default(500)
+  damagePolicy        String?
+  cancellationPolicy  String?
+  generalTerms        String?
+  receiptFooter       String?
+  whatsappTemplates   String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
