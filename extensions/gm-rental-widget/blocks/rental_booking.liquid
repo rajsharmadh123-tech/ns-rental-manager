@@ -148,6 +148,12 @@
       <strong class="gm-deposit-val">{{ initial_deposit }}</strong>
     </div>
 
+    <!-- Total Bill Due at Checkout (Rent + Refundable Security Deposit) -->
+    <div class="gm-rental-total-due" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 2px solid rgba(128, 128, 128, 0.25); font-weight: 700; color: var(--color-foreground, currentColor); font-size: 15px;">
+      <span>Total Bill (Payable at Checkout)</span>
+      <strong class="gm-total-bill-val" style="color: #008060; font-size: 16px;">—</strong>
+    </div>
+
     <!-- Rental Booking Dates Selection -->
     <div class="gm-rental-dates">
 
@@ -260,6 +266,10 @@
         <div class="gm-summary-row gm-deposit-sub">
           <span>Refundable Security Deposit</span>
           <span class="gm-modal-total-deposit">₹0</span>
+        </div>
+        <div class="gm-summary-row" style="font-weight: 700; border-top: 1px solid rgba(128,128,128,0.2); padding-top: 8px; margin-top: 6px; font-size: 15px;">
+          <span>Total Bill (Payable at Checkout)</span>
+          <strong class="gm-modal-final-total" style="color: #008060;">₹0</strong>
         </div>
       </div>
     </div>
@@ -1125,6 +1135,8 @@
             if (depositValEl) depositValEl.textContent = activeDeposit;
           }
 
+          updateTotalBillDisplay();
+
           if (isCheckingDates && pickup.value && returnDate.value) {
             if (data.isAvailable) {
               showMessage('This ' + itemType.toLowerCase() + ' is AVAILABLE for your selected dates! 🎉', false);
@@ -1290,26 +1302,80 @@
     });
   }
 
-  // 3. ACTION: INSTANT 1-CLICK CHECKOUT (Details collected at checkout)
+  function updateTotalBillDisplay() {
+    const totalBillEl = root.querySelector('.gm-total-bill-val');
+    if (!totalBillEl) return;
+    const rNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
+    const sNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+    const total = rNum + sNum;
+    totalBillEl.textContent = '₹' + total.toLocaleString('en-IN');
+  }
+
+  // 3. ACTION: INSTANT 1-CLICK CHECKOUT WITH RENT + SECURITY DEPOSIT IN TOTAL BILL
   if (bookButton) {
     bookButton.addEventListener('click', async function() {
       if (!validateDates()) return;
 
       bookButton.disabled = true;
       if (addBagBtn) addBagBtn.disabled = true;
-      showMessage('Reserving ' + itemType.toLowerCase() + ' & heading to checkout...', false);
+      showMessage('Generating combined checkout with security deposit...', false);
 
       try {
         saveSessionDates();
         const { bookingId } = await submitReservation();
 
+        let variantId = defaultVariantId;
+        const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') ||
+                             document.querySelector('[name="id"]');
+        if (variantField && variantField.value) {
+          variantId = variantField.value;
+        }
+
+        const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+        const rPriceNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
+        const sDepNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+
+        const draftPayload = {
+          shop: shop,
+          productId: productIdStr,
+          productTitle: productName,
+          variantId: variantId,
+          rentalPrice: rPriceNum,
+          securityDeposit: sDepNum,
+          pickupDate: pickup.value,
+          returnDate: returnDate.value,
+          bookingId: bookingId,
+          itemType: itemType,
+        };
+
+        let checkoutUrl = null;
+        try {
+          const res = await fetch('https://ns-rental-manager.onrender.com/api/create-rental-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(draftPayload)
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.checkoutUrl) {
+              checkoutUrl = data.checkoutUrl;
+            }
+          }
+        } catch (apiErr) {
+          console.warn('Draft order checkout API fallback:', apiErr);
+        }
+
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl;
+          return;
+        }
+
+        // Resilient fallback if draft order API unavailable
         try {
           await addProductToShopifyCart(bookingId);
         } catch (cartErr) {
           console.warn('Cart add error before checkout:', cartErr);
         }
-
-        // Direct customer to Shopify Checkout Page!
         window.location.href = '/checkout';
       } catch (err) {
         console.error('Redirecting to checkout:', err);
@@ -1415,8 +1481,24 @@
       }
     }
 
+    let bagTotalDeposit = 0;
+    rentalItems.forEach(item => {
+      const props = item.properties || {};
+      const s = parseFloat(String(props['Security Deposit'] || activeDeposit).replace(/[^\d.]/g, '')) || 0;
+      bagTotalDeposit += s * (item.quantity || 1);
+    });
+    if (totalDepositEl) {
+      totalDepositEl.textContent = '₹' + bagTotalDeposit.toLocaleString('en-IN');
+    }
+
+    const modalFinalTotalEl = modal.querySelector('.gm-modal-final-total');
     if (cart && totalPriceEl) {
-      totalPriceEl.textContent = (cart.total_price / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+      const rentTotal = (cart.total_price / 100);
+      totalPriceEl.textContent = rentTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+      if (modalFinalTotalEl) {
+        const grandTotal = rentTotal + bagTotalDeposit;
+        modalFinalTotalEl.textContent = grandTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+      }
     }
 
     modal.style.display = 'flex';
@@ -1434,7 +1516,55 @@
 
     if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
     if (continueBtn) continueBtn.addEventListener('click', () => modal.style.display = 'none');
-    if (checkoutBtn) checkoutBtn.addEventListener('click', () => window.location.href = '/checkout');
+    async function handleBagCheckout() {
+      const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
+      const { rentalItems } = await fetchRentalCart();
+
+      if (rentalItems.length === 0) {
+        window.location.href = '/checkout';
+        return;
+      }
+
+      const itemsPayload = rentalItems.map(item => {
+        const props = item.properties || {};
+        const rPriceNum = (item.price / 100);
+        const sDepNum = parseFloat(String(props['Security Deposit'] || activeDeposit).replace(/[^\d.]/g, '')) || 0;
+
+        return {
+          variantId: item.variant_id || item.id,
+          productTitle: item.title,
+          quantity: item.quantity,
+          rentalPrice: rPriceNum,
+          securityDeposit: sDepNum,
+          pickupDate: props['Rental Pickup Date'] || '',
+          returnDate: props['Rental Return Date'] || '',
+          bookingId: props['Rental Booking ID'] || '',
+          itemType: props['Item Type'] || 'Outfit'
+        };
+      });
+
+      try {
+        const res = await fetch('https://ns-rental-manager.onrender.com/api/create-rental-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ shop: shop, items: itemsPayload })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.checkoutUrl) {
+            try { await fetch('/cart/clear.js', { method: 'POST' }); } catch(e){}
+            window.location.href = data.checkoutUrl;
+            return;
+          }
+        }
+      } catch(e) {
+        console.warn('Draft checkout for bag fallback:', e);
+      }
+
+      window.location.href = '/checkout';
+    }
+
+    if (checkoutBtn) checkoutBtn.addEventListener('click', handleBagCheckout);
 
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.style.display = 'none';
@@ -1460,11 +1590,12 @@
     const viewBtn = floatingBar.querySelector('.gm-floating-view-btn');
     const checkBtn = floatingBar.querySelector('.gm-floating-checkout-btn');
     if (viewBtn) viewBtn.addEventListener('click', openRentalBagModal);
-    if (checkBtn) checkBtn.addEventListener('click', () => window.location.href = '/checkout');
+    if (checkBtn) checkBtn.addEventListener('click', openRentalBagModal);
   }
 
   // Initialize: Load session dates & fetch individual product pricing
   loadSessionDates();
+  updateTotalBillDisplay();
   checkAvailabilityAndPricing(false);
   updateFloatingBar();
 })();
