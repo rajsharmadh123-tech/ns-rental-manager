@@ -24,11 +24,36 @@ export default function App() {
           --gm-text-muted: #646B7C;
           --gm-bg: #F8F9FC;
           --gm-border: #E2E4EB;
+          --gm-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", Roboto, sans-serif;
+        }
+
+        *, *::before, *::after {
+          box-sizing: border-box;
         }
 
         body {
           background-color: #F8F9FC;
           color: #2E3346;
+          font-family: var(--gm-font);
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          margin: 0;
+          padding: 0;
+          letter-spacing: -0.01em;
+        }
+
+        /* Full-width responsive layout for Shopify App Bridge */
+        s-page {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        s-page::part(container) {
+          max-width: 100% !important;
+          width: 100% !important;
+          padding-left: clamp(12px, 2vw, 32px) !important;
+          padding-right: clamp(12px, 2vw, 32px) !important;
         }
 
         a {
@@ -38,20 +63,24 @@ export default function App() {
         .gm-btn-primary {
           background-color: #7964FF !important;
           color: #FFFFFF !important;
-          border-radius: 8px !important;
-          padding: 10px 18px !important;
+          border-radius: 10px !important;
+          padding: 10px 20px !important;
           font-weight: 600 !important;
+          font-family: var(--gm-font) !important;
           border: none !important;
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          gap: 6px !important;
+          gap: 8px !important;
           text-decoration: none !important;
           cursor: pointer !important;
-          transition: background-color 0.2s ease !important;
+          box-shadow: 0 2px 8px rgba(121, 100, 255, 0.28) !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
         .gm-btn-primary:hover {
           background-color: #634EFF !important;
+          box-shadow: 0 4px 14px rgba(121, 100, 255, 0.38) !important;
+          transform: translateY(-1px);
         }
 
         .gm-badge-purple {
@@ -67,6 +96,7 @@ export default function App() {
         .gm-header-title {
           color: #2E3346 !important;
           font-weight: 700 !important;
+          letter-spacing: -0.02em !important;
         }
       `}</style>
 

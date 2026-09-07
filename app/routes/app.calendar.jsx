@@ -122,7 +122,7 @@ export default function RentalCalendar() {
   ];
 
   return (
-    <s-page heading="Rental Visual Calendar">
+    <s-page heading="Rental Visual Calendar" inline-size="large">
 
       <s-button slot="primary-action" href="/app/rentals/new">
         + New Booking

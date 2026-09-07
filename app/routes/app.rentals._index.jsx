@@ -55,7 +55,7 @@ export default function RentalsList() {
   };
 
   return (
-    <s-page heading="Rentals Directory">
+    <s-page heading="Rentals Directory" inline-size="large">
 
       <Link slot="primary-action" to="/app/rentals/new" className="gm-btn-primary">
         + New Booking

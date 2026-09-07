@@ -540,10 +540,10 @@ export default function AvailabilityManager() {
   };
 
   return (
-    <s-page heading="Smart Inventory Availability & Date Blocker">
+    <s-page heading="Smart Inventory Availability & Date Blocker" inline-size="large">
       <style>{`
         .apple-wrap {
-          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: var(--gm-font);
           color: #2E3346;
           display: flex;
           flex-direction: column;
