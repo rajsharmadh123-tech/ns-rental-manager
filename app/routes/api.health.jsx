@@ -3,6 +3,9 @@ export const loader = async () => {
     JSON.stringify({
       status: "ok",
       app: "ns-rental-manager",
+      commit: process.env.RENDER_GIT_COMMIT || "local",
+      branch: process.env.RENDER_GIT_BRANCH || "local",
+      renderServiceId: process.env.RENDER_SERVICE_ID || "local",
       timestamp: new Date().toISOString(),
     }),
     {
