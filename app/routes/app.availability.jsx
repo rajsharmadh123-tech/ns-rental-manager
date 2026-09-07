@@ -19,10 +19,9 @@ import {
 } from "../utils/availability.js";
 
 export const loader = async ({ request }) => {
-  try {
-    await ensureAvailabilityTablesExist();
-    const { admin, session } = await authenticate.admin(request);
-    const url = new URL(request.url);
+  const { admin, session } = await authenticate.admin(request);
+  await ensureAvailabilityTablesExist();
+  const url = new URL(request.url);
 
   const search = url.searchParams.get("search") || "";
   const selectedProductIdParam = url.searchParams.get("productId") || "";
@@ -183,13 +182,13 @@ export const loader = async ({ request }) => {
       todayStatus = { state: "LOST", label: "❌ Lost Inventory", color: "#991b1b" };
     } else {
       // Check if blocked today
-      const todayBlock = activeBlocks.find((b) => {
+      const todayBlock = (activeBlocks || []).find((b) => {
         const s = new Date(b.startDate);
         const e = new Date(b.endDate);
         return s <= today && e >= today;
       });
 
-      const todayRental = activeRentals.find((r) => {
+      const todayRental = (activeRentals || []).find((r) => {
         const p = new Date(r.pickupDate);
         const ret = new Date(r.returnDate);
         return p <= today && ret >= today;
@@ -211,10 +210,10 @@ export const loader = async ({ request }) => {
     }
 
     // Next upcoming booking & block dates
-    if (activeRentals.length > 0) {
+    if (activeRentals && activeRentals.length > 0) {
       nextBookingDate = formatDisplayDate(activeRentals[0].pickupDate);
     }
-    if (activeBlocks.length > 0) {
+    if (activeBlocks && activeBlocks.length > 0) {
       nextBlockDate = formatDisplayDate(activeBlocks[0].startDate);
     }
 
@@ -294,13 +293,13 @@ export const loader = async ({ request }) => {
     products,
     selectedProduct,
     productConfig,
-    activeRentals,
-    activeBlocks,
+    activeRentals: activeRentals || [],
+    activeBlocks: activeBlocks || [],
     todayStatus,
     nextBookingDate,
     nextBlockDate,
     checkResult,
-    storeWideBlocks,
+    storeWideBlocks: storeWideBlocks || [],
     searchDatesResult,
     activeTab,
     search,
@@ -310,36 +309,13 @@ export const loader = async ({ request }) => {
     searchTo,
     searchCategory,
   };
-  } catch (loaderErr) {
-    console.error("Critical error in availability loader:", loaderErr);
-    return {
-      products: [],
-      selectedProduct: null,
-      productConfig: null,
-      activeRentals: [],
-      activeBlocks: [],
-      todayStatus: { state: "AVAILABLE", label: "🟢 Available Today", color: "#16a34a" },
-      nextBookingDate: null,
-      nextBlockDate: null,
-      checkResult: null,
-      storeWideBlocks: [],
-      searchDatesResult: null,
-      activeTab: "inspector",
-      search: "",
-      checkPickup: "",
-      checkReturn: "",
-      searchFrom: "",
-      searchTo: "",
-      searchCategory: "ALL",
-      loadError: loaderErr?.message || "Failed to load availability data.",
-    };
-  }
 };
 
 export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  await ensureAvailabilityTablesExist();
+
   try {
-    await ensureAvailabilityTablesExist();
-    const { session } = await authenticate.admin(request);
     const formData = await request.formData();
     const actionType = formData.get("_action");
 
@@ -503,6 +479,7 @@ export const action = async ({ request }) => {
 
     return null;
   } catch (actionErr) {
+    if (actionErr instanceof Response) throw actionErr;
     console.error("Critical error in availability action:", actionErr);
     return { error: actionErr?.message || "An unexpected error occurred while processing your request." };
   }
@@ -510,26 +487,26 @@ export const action = async ({ request }) => {
 
 export default function AvailabilityManager() {
   const {
-    products,
-    selectedProduct,
-    productConfig,
-    activeRentals,
-    activeBlocks,
-    todayStatus,
-    nextBookingDate,
-    nextBlockDate,
-    checkResult,
-    storeWideBlocks,
-    searchDatesResult,
-    activeTab,
-    search,
-    checkPickup,
-    checkReturn,
-    searchFrom,
-    searchTo,
-    searchCategory,
-    loadError,
-  } = useLoaderData();
+    products = [],
+    selectedProduct = null,
+    productConfig = null,
+    activeRentals = [],
+    activeBlocks = [],
+    todayStatus = { state: "AVAILABLE", label: "🟢 Available Today", color: "#16a34a" },
+    nextBookingDate = null,
+    nextBlockDate = null,
+    checkResult = null,
+    storeWideBlocks = [],
+    searchDatesResult = null,
+    activeTab = "inspector",
+    search = "",
+    checkPickup = "",
+    checkReturn = "",
+    searchFrom = "",
+    searchTo = "",
+    searchCategory = "ALL",
+    loadError = null,
+  } = useLoaderData() || {};
 
   const actionData = useActionData();
   const submit = useSubmit();
@@ -1506,90 +1483,7 @@ export default function AvailabilityManager() {
 }
 
 export function ErrorBoundary() {
-  const error = useRouteError();
-  console.error("AvailabilityManager error caught in boundary:", error);
-
-  return (
-    <s-page heading="Smart Inventory Availability & Date Blocker">
-      <s-section>
-        <div
-          style={{
-            padding: "24px",
-            backgroundColor: "#FFFFFF",
-            borderRadius: "12px",
-            border: "1px solid #E2E4EB",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-            maxWidth: "680px",
-            margin: "20px auto",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-            <span style={{ fontSize: "28px" }}>⚠️</span>
-            <div>
-              <h3 style={{ margin: 0, fontSize: "18px", color: "#9f1239", fontWeight: "700" }}>
-                Notice: Could not complete operation
-              </h3>
-              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#646B7C" }}>
-                The application encountered an unexpected issue while communicating with the database or Shopify.
-              </p>
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: "12px 16px",
-              backgroundColor: "#fff1f2",
-              border: "1px solid #fecdd3",
-              borderRadius: "8px",
-              fontSize: "13px",
-              color: "#881337",
-              marginBottom: "20px",
-              fontFamily: "monospace",
-              wordBreak: "break-all",
-            }}
-          >
-            {error?.message || "An unexpected error occurred."}
-          </div>
-
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#7964FF",
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: "700",
-                fontSize: "13px",
-                cursor: "pointer",
-              }}
-            >
-              🔄 Refresh & Retry
-            </button>
-            <Link to="/app/availability" style={{ textDecoration: "none" }}>
-              <button
-                type="button"
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#F8F9FC",
-                  color: "#2E3346",
-                  border: "1px solid #E2E4EB",
-                  borderRadius: "8px",
-                  fontWeight: "700",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                Reset to Inspector
-              </button>
-            </Link>
-          </div>
-        </div>
-      </s-section>
-    </s-page>
-  );
+  return boundary.error(useRouteError());
 }
 
 export const headers = (headersArgs) => {
