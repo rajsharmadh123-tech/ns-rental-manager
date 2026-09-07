@@ -283,9 +283,32 @@ export default function App() {
           <span>Growth Manch</span>
         </div>
 
-        <div className={styles.navBadge}>
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#7964FF" }} />
-          <span>Shopify Solutions</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <a
+            href="#about-us"
+            style={{
+              fontSize: "13px",
+              fontWeight: "600",
+              color: "#646B7C",
+              textDecoration: "none",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              transition: "color 0.2s ease",
+            }}
+          >
+            About Us
+          </a>
+
+          <a
+            href="https://www.growthmanch.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.navBadge}
+            style={{ textDecoration: "none" }}
+          >
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#7964FF" }} />
+            <span>www.growthmanch.in ↗</span>
+          </a>
         </div>
       </nav>
 
@@ -369,6 +392,87 @@ export default function App() {
         ))}
       </section>
 
+      {/* About Us Section */}
+      <section className={styles.aboutSection} id="about-us">
+        <div className={styles.aboutCard}>
+          <div className={styles.aboutHeader}>
+            <div>
+              <div className={styles.aboutBadge}>
+                <span>🏢</span>
+                <span>About Us</span>
+              </div>
+              <h2 className={styles.aboutTitle}>Built by Growth Manch</h2>
+              <p className={styles.aboutTagline}>
+                Growth Manch is a premier digital engineering and performance growth agency. We architect high-ROI performance marketing engines, intelligent workflow automations, and custom enterprise-grade web solutions for high-growth businesses.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.aboutGrid}>
+            <div className={styles.aboutTile}>
+              <h4 className={styles.aboutTileTitle}>
+                <span>⚡</span>
+                <span>Custom Web Engineering</span>
+              </h4>
+              <p className={styles.aboutTileDesc}>
+                Precision full-stack web applications and robust Shopify platform integrations built for scale, reliability, and security.
+              </p>
+            </div>
+
+            <div className={styles.aboutTile}>
+              <h4 className={styles.aboutTileTitle}>
+                <span>🤖</span>
+                <span>AI & Workflow Automation</span>
+              </h4>
+              <p className={styles.aboutTileDesc}>
+                Eliminating manual bottlenecks with smart inventory engines, automated operational buffers, and streamlined operations.
+              </p>
+            </div>
+
+            <div className={styles.aboutTile}>
+              <h4 className={styles.aboutTileTitle}>
+                <span>📈</span>
+                <span>Performance Growth</span>
+              </h4>
+              <p className={styles.aboutTileDesc}>
+                Data-backed digital marketing, organic SEO, and conversion optimization to help modern brands scale 10x efficiently.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.aboutCtaBar}>
+            <div>
+              <span style={{ fontSize: "13px", color: "#646B7C", display: "block", marginBottom: "2px" }}>
+                Official Website:
+              </span>
+              <a
+                href="https://www.growthmanch.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: "#7964FF",
+                  textDecoration: "none",
+                }}
+              >
+                www.growthmanch.in ↗
+              </a>
+            </div>
+
+            <a
+              href="https://www.growthmanch.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.websiteLinkBtn}
+            >
+              <span>Visit www.growthmanch.in</span>
+              <span>➔</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className={styles.landingFooter}>
         <div className={styles.footerBrand}>
@@ -376,10 +480,10 @@ export default function App() {
             <rect width="24" height="24" rx="6" fill="#7964FF"/>
             <path d="M7 16V8L12 13L17 8V16" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span>Developed by Growth Manch</span>
+          <span>Developed by <a href="https://www.growthmanch.in" target="_blank" rel="noopener noreferrer" style={{ color: "#7964FF", fontWeight: "700", textDecoration: "none" }}>Growth Manch</a></span>
         </div>
         <div>
-          Professional Shopify solutions engineered for high performance, reliability, and precision rental operations.
+          Professional Shopify solutions engineered for high performance, reliability, and precision rental operations. Visit <a href="https://www.growthmanch.in" target="_blank" rel="noopener noreferrer" style={{ color: "#7964FF", fontWeight: "600", textDecoration: "none" }}>www.growthmanch.in</a>
         </div>
       </footer>
     </div>
