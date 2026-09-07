@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLoaderData, useActionData, useSubmit, Form, Link } from "react-router";
+import { useLoaderData, useActionData, useSubmit, useNavigation, useRouteError, Form, Link } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server.js";
@@ -9,6 +9,7 @@ import {
   unblockAvailabilityBlock,
   bulkCreateAvailabilityBlocks,
   getAvailableProductsForDates,
+  ensureAvailabilityTablesExist,
   logAuditAction,
 } from "../utils/availability.server.js";
 import {
@@ -18,8 +19,10 @@ import {
 } from "../utils/availability.js";
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
-  const url = new URL(request.url);
+  try {
+    await ensureAvailabilityTablesExist();
+    const { admin, session } = await authenticate.admin(request);
+    const url = new URL(request.url);
 
   const search = url.searchParams.get("search") || "";
   const selectedProductIdParam = url.searchParams.get("productId") || "";
@@ -156,7 +159,20 @@ export const loader = async ({ request }) => {
         },
         orderBy: { startDate: "asc" },
       });
-    } catch (e) {}
+    } catch (e) {
+      try {
+        activeBlocks = await prisma.$queryRawUnsafe(
+          `SELECT * FROM "AvailabilityBlock"
+           WHERE "shop" = $1 AND "productId" LIKE $2 AND "status" = 'ACTIVE' AND "endDate" >= $3
+           ORDER BY "startDate" ASC`,
+          session.shop,
+          `%${cleanId}%`,
+          today
+        );
+      } catch (rawErr) {
+        activeBlocks = [];
+      }
+    }
 
     // Determine Today's Operational Status
     if (productConfig?.isEnabled === false) {
@@ -225,7 +241,16 @@ export const loader = async ({ request }) => {
       orderBy: { startDate: "asc" },
       take: 100,
     });
-  } catch (e) {}
+  } catch (e) {
+    try {
+      storeWideBlocks = await prisma.$queryRawUnsafe(
+        `SELECT * FROM "AvailabilityBlock" WHERE "shop" = $1 AND "status" = 'ACTIVE' ORDER BY "startDate" ASC LIMIT 100`,
+        session.shop
+      );
+    } catch (rawErr) {
+      storeWideBlocks = [];
+    }
+  }
 
   // 5. Availability Search by Date & Category (Tab 4)
   let searchDatesResult = null;
@@ -285,172 +310,202 @@ export const loader = async ({ request }) => {
     searchTo,
     searchCategory,
   };
+  } catch (loaderErr) {
+    console.error("Critical error in availability loader:", loaderErr);
+    return {
+      products: [],
+      selectedProduct: null,
+      productConfig: null,
+      activeRentals: [],
+      activeBlocks: [],
+      todayStatus: { state: "AVAILABLE", label: "🟢 Available Today", color: "#16a34a" },
+      nextBookingDate: null,
+      nextBlockDate: null,
+      checkResult: null,
+      storeWideBlocks: [],
+      searchDatesResult: null,
+      activeTab: "inspector",
+      search: "",
+      checkPickup: "",
+      checkReturn: "",
+      searchFrom: "",
+      searchTo: "",
+      searchCategory: "ALL",
+      loadError: loaderErr?.message || "Failed to load availability data.",
+    };
+  }
 };
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const actionType = formData.get("_action");
+  try {
+    await ensureAvailabilityTablesExist();
+    const { session } = await authenticate.admin(request);
+    const formData = await request.formData();
+    const actionType = formData.get("_action");
 
-  // ACTION 1: MANUAL DATE BLOCKING WITH OVERLAP CONFLICT DETECTION
-  if (actionType === "block_dates") {
-    const productId = formData.get("productId");
-    const productTitle = formData.get("productTitle");
-    const startDate = formData.get("startDate");
-    const endDate = formData.get("endDate") || startDate; // Support single-day blocking
-    const reason = formData.get("reason") || "OTHER";
-    const customerName = formData.get("customerName")?.trim() || null;
-    const customerPhone = formData.get("customerPhone")?.trim() || null;
-    const internalNote = formData.get("internalNote")?.trim() || null;
-    const forceOverride = formData.get("forceOverride") === "true";
+    // ACTION 1: MANUAL DATE BLOCKING WITH OVERLAP CONFLICT DETECTION
+    if (actionType === "block_dates") {
+      const productId = formData.get("productId");
+      const productTitle = formData.get("productTitle");
+      const startDate = formData.get("startDate");
+      const endDate = formData.get("endDate") || startDate; // Support single-day blocking
+      const reason = formData.get("reason") || "OTHER";
+      const customerName = formData.get("customerName")?.trim() || null;
+      const customerPhone = formData.get("customerPhone")?.trim() || null;
+      const internalNote = formData.get("internalNote")?.trim() || null;
+      const forceOverride = formData.get("forceOverride") === "true";
 
-    if (!productId || !startDate) {
-      return { error: "Please select a product and start date." };
-    }
+      if (!productId || !startDate) {
+        return { error: "Please select a product and start date." };
+      }
 
-    // Conflict Check (unless admin explicitly confirmed force-override)
-    if (!forceOverride) {
-      const availability = await checkProductAvailability({
-        shop: session.shop,
-        productId,
-        pickupDate: startDate,
-        returnDate: endDate,
-        isStorefront: false,
-      });
+      // Conflict Check (unless admin explicitly confirmed force-override)
+      if (!forceOverride) {
+        const availability = await checkProductAvailability({
+          shop: session.shop,
+          productId,
+          pickupDate: startDate,
+          returnDate: endDate,
+          isStorefront: false,
+        });
 
-      if (!availability.isAvailable) {
-        return {
-          conflictWarning: true,
-          message: availability.message,
-          conflicts: availability.conflicts,
-          pendingBlock: {
-            productId,
-            productTitle,
-            startDate,
-            endDate,
-            reason,
-            customerName,
-            customerPhone,
-            internalNote,
-          },
-        };
+        if (!availability.isAvailable) {
+          return {
+            conflictWarning: true,
+            message: availability.message,
+            conflicts: availability.conflicts,
+            pendingBlock: {
+              productId,
+              productTitle,
+              startDate,
+              endDate,
+              reason,
+              customerName,
+              customerPhone,
+              internalNote,
+            },
+          };
+        }
+      }
+
+      try {
+        await createAvailabilityBlock({
+          shop: session.shop,
+          productId,
+          productTitle,
+          startDate,
+          endDate,
+          reason,
+          customerName,
+          customerPhone,
+          internalNote,
+          createdBy: "Admin",
+        });
+
+        return { success: `Successfully blocked dates for "${productTitle}" (${formatReasonLabel(reason)})!` };
+      } catch (err) {
+        return { error: err.message || "Failed to create availability block." };
       }
     }
 
-    try {
-      await createAvailabilityBlock({
-        shop: session.shop,
-        productId,
-        productTitle,
-        startDate,
-        endDate,
-        reason,
-        customerName,
-        customerPhone,
-        internalNote,
-        createdBy: "Admin",
-      });
+    // ACTION 2: ONE-CLICK UNBLOCK DATES
+    if (actionType === "unblock_dates") {
+      const blockId = formData.get("blockId");
+      if (!blockId) return { error: "Invalid block ID." };
 
-      return { success: `Successfully blocked dates for "${productTitle}" (${formatReasonLabel(reason)})!` };
-    } catch (err) {
-      return { error: err.message || "Failed to create availability block." };
-    }
-  }
-
-  // ACTION 2: ONE-CLICK UNBLOCK DATES
-  if (actionType === "unblock_dates") {
-    const blockId = formData.get("blockId");
-    if (!blockId) return { error: "Invalid block ID." };
-
-    try {
-      await unblockAvailabilityBlock(session.shop, blockId, "Admin");
-      return { success: "Dates unblocked successfully! Outfit is now available for those dates." };
-    } catch (err) {
-      return { error: err.message || "Failed to unblock dates." };
-    }
-  }
-
-  // ACTION 3: BULK DATE BLOCKING ACROSS MULTIPLE OUTFITS
-  if (actionType === "bulk_block") {
-    const productIdsRaw = formData.get("productIds");
-    const startDate = formData.get("startDate");
-    const endDate = formData.get("endDate") || startDate;
-    const reason = formData.get("reason") || "MAINTENANCE";
-    const internalNote = formData.get("internalNote")?.trim() || null;
-
-    if (!productIdsRaw || !startDate) {
-      return { error: "Please select at least one product and dates." };
+      try {
+        await unblockAvailabilityBlock(session.shop, blockId, "Admin");
+        return { success: "Dates unblocked successfully! Outfit is now available for those dates." };
+      } catch (err) {
+        return { error: err.message || "Failed to unblock dates." };
+      }
     }
 
-    const productIds = productIdsRaw.split(",").map((s) => s.trim()).filter(Boolean);
-    if (productIds.length === 0) {
-      return { error: "No products selected for bulk blocking." };
+    // ACTION 3: BULK DATE BLOCKING ACROSS MULTIPLE OUTFITS
+    if (actionType === "bulk_block") {
+      const productIdsRaw = formData.get("productIds");
+      const startDate = formData.get("startDate");
+      const endDate = formData.get("endDate") || startDate;
+      const reason = formData.get("reason") || "MAINTENANCE";
+      const internalNote = formData.get("internalNote")?.trim() || null;
+
+      if (!productIdsRaw || !startDate) {
+        return { error: "Please select at least one product and dates." };
+      }
+
+      const productIds = productIdsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+      if (productIds.length === 0) {
+        return { error: "No products selected for bulk blocking." };
+      }
+
+      try {
+        await bulkCreateAvailabilityBlocks({
+          shop: session.shop,
+          productIds,
+          startDate,
+          endDate,
+          reason,
+          internalNote,
+          createdBy: "Admin",
+        });
+
+        return { success: `Successfully bulk-blocked ${productIds.length} outfits (${formatReasonLabel(reason)})!` };
+      } catch (err) {
+        return { error: err.message || "Failed to bulk block outfits." };
+      }
     }
 
-    try {
-      await bulkCreateAvailabilityBlocks({
-        shop: session.shop,
-        productIds,
-        startDate,
-        endDate,
-        reason,
-        internalNote,
-        createdBy: "Admin",
-      });
+    // ACTION 4: TOGGLE PRODUCT STATUS (Enabled / Damaged / Lost)
+    if (actionType === "toggle_product_status") {
+      const productId = formData.get("productId");
+      const isEnabled = formData.get("isEnabled") === "true";
+      const isDamaged = formData.get("isDamaged") === "true";
+      const isLost = formData.get("isLost") === "true";
 
-      return { success: `Successfully bulk-blocked ${productIds.length} outfits (${formatReasonLabel(reason)})!` };
-    } catch (err) {
-      return { error: err.message || "Failed to bulk block outfits." };
-    }
-  }
+      const cleanId = String(productId).replace("gid://shopify/Product/", "");
 
-  // ACTION 4: TOGGLE PRODUCT STATUS (Enabled / Damaged / Lost)
-  if (actionType === "toggle_product_status") {
-    const productId = formData.get("productId");
-    const isEnabled = formData.get("isEnabled") === "true";
-    const isDamaged = formData.get("isDamaged") === "true";
-    const isLost = formData.get("isLost") === "true";
-
-    const cleanId = String(productId).replace("gid://shopify/Product/", "");
-
-    await prisma.rentalProductConfig.upsert({
-      where: {
-        shop_productId_variantId: {
+      await prisma.rentalProductConfig.upsert({
+        where: {
+          shop_productId_variantId: {
+            shop: session.shop,
+            productId: cleanId,
+            variantId: "",
+          },
+        },
+        update: {
+          isEnabled,
+          isDamaged,
+          isLost,
+        },
+        create: {
           shop: session.shop,
           productId: cleanId,
           variantId: "",
+          rentalPrice: 0,
+          securityDeposit: 0,
+          isEnabled,
+          isDamaged,
+          isLost,
         },
-      },
-      update: {
-        isEnabled,
-        isDamaged,
-        isLost,
-      },
-      create: {
+      });
+
+      await logAuditAction({
         shop: session.shop,
-        productId: cleanId,
-        variantId: "",
-        rentalPrice: 0,
-        securityDeposit: 0,
-        isEnabled,
-        isDamaged,
-        isLost,
-      },
-    });
+        action: "PRODUCT_STATUS_UPDATED",
+        entityType: "PRODUCT",
+        entityId: cleanId,
+        details: `Updated status: isEnabled=${isEnabled}, isDamaged=${isDamaged}, isLost=${isLost}`,
+        performedBy: "Admin",
+      });
 
-    await logAuditAction({
-      shop: session.shop,
-      action: "PRODUCT_STATUS_UPDATED",
-      entityType: "PRODUCT",
-      entityId: cleanId,
-      details: `Updated status: isEnabled=${isEnabled}, isDamaged=${isDamaged}, isLost=${isLost}`,
-      performedBy: "Admin",
-    });
+      return { success: "Product rental status updated successfully!" };
+    }
 
-    return { success: "Product rental status updated successfully!" };
+    return null;
+  } catch (actionErr) {
+    console.error("Critical error in availability action:", actionErr);
+    return { error: actionErr?.message || "An unexpected error occurred while processing your request." };
   }
-
-  return null;
 };
 
 export default function AvailabilityManager() {
@@ -473,10 +528,13 @@ export default function AvailabilityManager() {
     searchFrom,
     searchTo,
     searchCategory,
+    loadError,
   } = useLoaderData();
 
   const actionData = useActionData();
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
 
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
@@ -524,6 +582,14 @@ export default function AvailabilityManager() {
         </s-section>
       )}
 
+      {loadError && (
+        <s-section>
+          <div style={{ padding: "14px 18px", backgroundColor: "#fef3c7", color: "#92400e", borderRadius: "10px", fontWeight: "600", fontSize: "14px", border: "1px solid #fde68a" }}>
+            ⚠️ Note: {loadError}
+          </div>
+        </s-section>
+      )}
+
       {/* Overlapping Conflict Warning Modal */}
       {actionData?.conflictWarning && (
         <s-section>
@@ -559,7 +625,9 @@ export default function AvailabilityManager() {
               <input type="hidden" name="customerPhone" value={actionData.pendingBlock?.customerPhone || ""} />
               <input type="hidden" name="internalNote" value={actionData.pendingBlock?.internalNote || ""} />
 
-              <s-button type="submit" tone="critical">Force Block Overlapping Dates</s-button>
+              <s-button type="submit" tone="critical" disabled={isSubmitting}>
+                {isSubmitting ? "⏳ Overriding Dates..." : "Force Block Overlapping Dates"}
+              </s-button>
               <Link to={`/app/availability?productId=${encodeURIComponent(actionData.pendingBlock?.productId || "")}`} style={{ textDecoration: "none" }}>
                 <s-button type="button">Cancel</s-button>
               </Link>
@@ -953,7 +1021,9 @@ export default function AvailabilityManager() {
                         />
                       </div>
 
-                      <s-button type="submit" style={{ width: "100%" }}>Block Dates</s-button>
+                      <s-button type="submit" disabled={isSubmitting} style={{ width: "100%" }}>
+                        {isSubmitting ? "⏳ Blocking Dates..." : "🔒 Block Dates"}
+                      </s-button>
                     </Form>
                   </s-box>
 
@@ -1206,8 +1276,8 @@ export default function AvailabilityManager() {
                 </div>
               </div>
 
-              <s-button type="submit" disabled={selectedProductIds.length === 0}>
-                Block Selected ({selectedProductIds.length}) Products
+              <s-button type="submit" disabled={selectedProductIds.length === 0 || isSubmitting}>
+                {isSubmitting ? "⏳ Blocking Outfits..." : `Block Selected (${selectedProductIds.length}) Outfits`}
               </s-button>
             </Form>
           </s-box>
@@ -1431,6 +1501,93 @@ export default function AvailabilityManager() {
         </s-section>
       )}
 
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("AvailabilityManager error caught in boundary:", error);
+
+  return (
+    <s-page heading="Smart Inventory Availability & Date Blocker">
+      <s-section>
+        <div
+          style={{
+            padding: "24px",
+            backgroundColor: "#FFFFFF",
+            borderRadius: "12px",
+            border: "1px solid #E2E4EB",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+            maxWidth: "680px",
+            margin: "20px auto",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+            <span style={{ fontSize: "28px" }}>⚠️</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "18px", color: "#9f1239", fontWeight: "700" }}>
+                Notice: Could not complete operation
+              </h3>
+              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#646B7C" }}>
+                The application encountered an unexpected issue while communicating with the database or Shopify.
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "12px 16px",
+              backgroundColor: "#fff1f2",
+              border: "1px solid #fecdd3",
+              borderRadius: "8px",
+              fontSize: "13px",
+              color: "#881337",
+              marginBottom: "20px",
+              fontFamily: "monospace",
+              wordBreak: "break-all",
+            }}
+          >
+            {error?.message || "An unexpected error occurred."}
+          </div>
+
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#7964FF",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: "700",
+                fontSize: "13px",
+                cursor: "pointer",
+              }}
+            >
+              🔄 Refresh & Retry
+            </button>
+            <Link to="/app/availability" style={{ textDecoration: "none" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#F8F9FC",
+                  color: "#2E3346",
+                  border: "1px solid #E2E4EB",
+                  borderRadius: "8px",
+                  fontWeight: "700",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                Reset to Inspector
+              </button>
+            </Link>
+          </div>
+        </div>
+      </s-section>
     </s-page>
   );
 }

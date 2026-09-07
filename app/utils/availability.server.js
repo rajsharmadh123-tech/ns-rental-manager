@@ -2,6 +2,70 @@ import prisma from "../db.server.js";
 import { formatDisplayDate, formatReasonLabel, getReasonColor } from "./availability.js";
 export { formatDisplayDate, formatReasonLabel, getReasonColor } from "./availability.js";
 
+let isTableInitialized = false;
+
+/**
+ * Self-healing DB initialization:
+ * Ensures AvailabilityBlock & AuditLog tables and buffer columns exist in PostgreSQL.
+ */
+export async function ensureAvailabilityTablesExist() {
+  if (isTableInitialized) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      -- Alter RentalProductConfig columns if missing
+      ALTER TABLE "RentalProductConfig" ADD COLUMN IF NOT EXISTS "cleaningBufferDays" INTEGER;
+      ALTER TABLE "RentalProductConfig" ADD COLUMN IF NOT EXISTS "isDamaged" BOOLEAN NOT NULL DEFAULT false;
+      ALTER TABLE "RentalProductConfig" ADD COLUMN IF NOT EXISTS "isLost" BOOLEAN NOT NULL DEFAULT false;
+
+      -- Alter RentalSettings columns if missing
+      ALTER TABLE "RentalSettings" ADD COLUMN IF NOT EXISTS "cleaningBufferDays" INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE "RentalSettings" ADD COLUMN IF NOT EXISTS "alterationBufferDays" INTEGER NOT NULL DEFAULT 0;
+
+      -- Create AvailabilityBlock table if missing
+      CREATE TABLE IF NOT EXISTS "AvailabilityBlock" (
+          "id" TEXT NOT NULL,
+          "shop" TEXT NOT NULL,
+          "productId" TEXT NOT NULL,
+          "productTitle" TEXT,
+          "variantId" TEXT DEFAULT '',
+          "startDate" TIMESTAMP(3) NOT NULL,
+          "endDate" TIMESTAMP(3) NOT NULL,
+          "reason" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+          "customerName" TEXT,
+          "customerPhone" TEXT,
+          "internalNote" TEXT,
+          "createdBy" TEXT DEFAULT 'Admin',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AvailabilityBlock_pkey" PRIMARY KEY ("id")
+      );
+
+      -- Create indexes if missing
+      CREATE INDEX IF NOT EXISTS "AvailabilityBlock_shop_productId_startDate_endDate_idx" ON "AvailabilityBlock"("shop", "productId", "startDate", "endDate");
+      CREATE INDEX IF NOT EXISTS "AvailabilityBlock_shop_status_idx" ON "AvailabilityBlock"("shop", "status");
+
+      -- Create AuditLog table if missing
+      CREATE TABLE IF NOT EXISTS "AuditLog" (
+          "id" TEXT NOT NULL,
+          "shop" TEXT NOT NULL,
+          "action" TEXT NOT NULL,
+          "entityType" TEXT NOT NULL,
+          "entityId" TEXT NOT NULL,
+          "details" TEXT,
+          "performedBy" TEXT NOT NULL DEFAULT 'Admin',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+      );
+
+      CREATE INDEX IF NOT EXISTS "AuditLog_shop_entityType_entityId_idx" ON "AuditLog"("shop", "entityType", "entityId");
+    `);
+    isTableInitialized = true;
+  } catch (err) {
+    console.warn("⚠️ Notice while ensuring availability tables exist:", err?.message);
+  }
+}
+
 /**
  * Normalizes an incoming date to YYYY-MM-DD midnight in local/UTC calculation
  */
@@ -218,6 +282,7 @@ export async function checkProductAvailability({
 
   // 4. Query Manual Availability Blocks (Cleaning, Alteration, Maintenance, Hold, Damage, etc.)
   try {
+    await ensureAvailabilityTablesExist();
     const blockWhere = {
       shop,
       productId: { contains: cleanProductId },
@@ -238,15 +303,33 @@ export async function checkProductAvailability({
       blockWhere.id = { not: excludeBlockId };
     }
 
-    const activeBlocks = await prisma.availabilityBlock.findMany({
-      where: blockWhere,
-      orderBy: { startDate: "asc" },
-    });
+    let activeBlocks = [];
+    try {
+      activeBlocks = await prisma.availabilityBlock.findMany({
+        where: blockWhere,
+        orderBy: { startDate: "asc" },
+      });
+    } catch (findErr) {
+      try {
+        activeBlocks = await prisma.$queryRawUnsafe(
+          `SELECT * FROM "AvailabilityBlock"
+           WHERE "shop" = $1 AND "productId" LIKE $2 AND "status" = 'ACTIVE'
+           AND "startDate" <= $3 AND "endDate" >= $4
+           ORDER BY "startDate" ASC`,
+          shop,
+          `%${cleanProductId}%`,
+          rDate,
+          pDate
+        );
+      } catch (rawErr) {
+        console.warn("AvailabilityBlock raw query skipped:", rawErr?.message);
+      }
+    }
 
-    for (const block of activeBlocks) {
+    for (const block of (activeBlocks || [])) {
       conflicts.push({
         id: block.id,
-        bookingId: `BLK-${block.id.slice(-6).toUpperCase()}`,
+        bookingId: `BLK-${String(block.id).slice(-6).toUpperCase()}`,
         type: "BLOCK",
         reason: block.reason,
         startDate: new Date(block.startDate),
@@ -439,6 +522,7 @@ export async function createAvailabilityBlock({
   internalNote = null,
   createdBy = "Admin",
 }) {
+  await ensureAvailabilityTablesExist();
   const sDate = normalizeDate(startDate);
   const eDate = normalizeDate(endDate);
 
@@ -449,30 +533,75 @@ export async function createAvailabilityBlock({
     throw new Error("End date cannot be before start date.");
   }
 
-  const block = await prisma.availabilityBlock.create({
-    data: {
-      shop,
-      productId: String(productId),
-      productTitle,
-      variantId: variantId || "",
-      startDate: sDate,
-      endDate: eDate,
-      reason,
-      status: "ACTIVE",
-      customerName,
-      customerPhone,
-      internalNote,
-      createdBy,
-    },
-  });
+  const cleanProductId = String(productId).replace("gid://shopify/Product/", "");
+  const blockId = "blk_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-  // Audit log
+  let block;
+  try {
+    block = await prisma.availabilityBlock.create({
+      data: {
+        shop,
+        productId: cleanProductId,
+        productTitle,
+        variantId: variantId || "",
+        startDate: sDate,
+        endDate: eDate,
+        reason,
+        status: "ACTIVE",
+        customerName,
+        customerPhone,
+        internalNote,
+        createdBy,
+      },
+    });
+  } catch (err) {
+    console.warn("prisma.availabilityBlock.create fallback to raw SQL:", err?.message);
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "AvailabilityBlock" ("id", "shop", "productId", "productTitle", "variantId", "startDate", "endDate", "reason", "status", "customerName", "customerPhone", "internalNote", "createdBy", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        blockId,
+        shop,
+        cleanProductId,
+        productTitle,
+        variantId || "",
+        sDate,
+        eDate,
+        reason,
+        "ACTIVE",
+        customerName,
+        customerPhone,
+        internalNote,
+        createdBy
+      );
+      block = {
+        id: blockId,
+        shop,
+        productId: cleanProductId,
+        productTitle,
+        variantId: variantId || "",
+        startDate: sDate,
+        endDate: eDate,
+        reason,
+        status: "ACTIVE",
+        customerName,
+        customerPhone,
+        internalNote,
+        createdBy,
+      };
+    } catch (rawErr) {
+      console.error("Critical error creating availability block in raw SQL:", rawErr);
+      throw new Error(`Failed to block dates: ${rawErr.message}`);
+    }
+  }
+
+  // Audit log (never throws)
   await logAuditAction({
     shop,
     action: "BLOCK_CREATED",
     entityType: "AVAILABILITY_BLOCK",
     entityId: block.id,
-    details: `Blocked ${productTitle || productId} from ${formatDisplayDate(sDate)} to ${formatDisplayDate(eDate)} for ${formatReasonLabel(reason)}. Note: ${internalNote || "None"}`,
+    details: `Blocked ${productTitle || cleanProductId} from ${formatDisplayDate(sDate)} to ${formatDisplayDate(eDate)} for ${formatReasonLabel(reason)}. Note: ${internalNote || "None"}`,
     performedBy: createdBy,
   });
 
@@ -483,18 +612,45 @@ export async function createAvailabilityBlock({
  * Cancels/unblocks an availability block and logs an audit record
  */
 export async function unblockAvailabilityBlock(shop, blockId, performedBy = "Admin") {
-  const block = await prisma.availabilityBlock.findUnique({
-    where: { id: blockId },
-  });
+  await ensureAvailabilityTablesExist();
+
+  let block = null;
+  try {
+    block = await prisma.availabilityBlock.findUnique({
+      where: { id: blockId },
+    });
+  } catch (e) {
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT * FROM "AvailabilityBlock" WHERE "id" = $1 LIMIT 1`,
+        blockId
+      );
+      block = rows?.[0] || null;
+    } catch (rawErr) {
+      console.warn("Raw block query failed:", rawErr?.message);
+    }
+  }
 
   if (!block || block.shop !== shop) {
     throw new Error("Availability block not found.");
   }
 
-  const updated = await prisma.availabilityBlock.update({
-    where: { id: blockId },
-    data: { status: "CANCELLED" },
-  });
+  try {
+    await prisma.availabilityBlock.update({
+      where: { id: blockId },
+      data: { status: "CANCELLED" },
+    });
+  } catch (e) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "AvailabilityBlock" SET "status" = 'CANCELLED', "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $1`,
+        blockId
+      );
+    } catch (rawErr) {
+      console.error("Failed to cancel block in raw SQL:", rawErr);
+      throw new Error(`Failed to unblock dates: ${rawErr.message}`);
+    }
+  }
 
   await logAuditAction({
     shop,
@@ -505,7 +661,7 @@ export async function unblockAvailabilityBlock(shop, blockId, performedBy = "Adm
     performedBy,
   });
 
-  return updated;
+  return { success: true };
 }
 
 /**
@@ -521,6 +677,7 @@ export async function bulkCreateAvailabilityBlocks({
   internalNote = null,
   createdBy = "Admin",
 }) {
+  await ensureAvailabilityTablesExist();
   const sDate = normalizeDate(startDate);
   const eDate = normalizeDate(endDate);
 
@@ -531,21 +688,45 @@ export async function bulkCreateAvailabilityBlocks({
   const createdBlocks = [];
 
   for (const pid of productIds) {
-    const title = productTitlesMap[pid] || "Product " + pid;
-    const block = await prisma.availabilityBlock.create({
-      data: {
-        shop,
-        productId: String(pid),
-        productTitle: title,
-        startDate: sDate,
-        endDate: eDate,
-        reason,
-        status: "ACTIVE",
-        internalNote,
-        createdBy,
-      },
-    });
-    createdBlocks.push(block);
+    const cleanId = String(pid).replace("gid://shopify/Product/", "");
+    const title = productTitlesMap[pid] || "Product " + cleanId;
+    const blockId = "blk_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+    try {
+      const block = await prisma.availabilityBlock.create({
+        data: {
+          shop,
+          productId: cleanId,
+          productTitle: title,
+          startDate: sDate,
+          endDate: eDate,
+          reason,
+          status: "ACTIVE",
+          internalNote,
+          createdBy,
+        },
+      });
+      createdBlocks.push(block);
+    } catch (e) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "AvailabilityBlock" ("id", "shop", "productId", "productTitle", "variantId", "startDate", "endDate", "reason", "status", "internalNote", "createdBy", "createdAt", "updatedAt")
+           VALUES ($1, $2, $3, $4, '', $5, $6, $7, 'ACTIVE', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          blockId,
+          shop,
+          cleanId,
+          title,
+          sDate,
+          eDate,
+          reason,
+          internalNote,
+          createdBy
+        );
+        createdBlocks.push({ id: blockId, productId: cleanId, productTitle: title });
+      } catch (rawErr) {
+        console.warn("Failed bulk insert for product:", cleanId, rawErr?.message);
+      }
+    }
   }
 
   await logAuditAction({
@@ -554,7 +735,7 @@ export async function bulkCreateAvailabilityBlocks({
     entityType: "AVAILABILITY_BLOCK",
     entityId: `${createdBlocks.length}-products`,
     details: `Bulk blocked ${createdBlocks.length} products from ${formatDisplayDate(sDate)} to ${formatDisplayDate(eDate)} for ${formatReasonLabel(reason)}. Note: ${internalNote || "None"}`,
-    performedBy: createdBy,
+    performedBy,
   });
 
   return createdBlocks;
@@ -572,16 +753,32 @@ export async function logAuditAction({
   performedBy = "Admin",
 }) {
   try {
-    await prisma.auditLog.create({
-      data: {
+    await ensureAvailabilityTablesExist();
+    try {
+      await prisma.auditLog.create({
+        data: {
+          shop,
+          action,
+          entityType,
+          entityId: String(entityId),
+          details,
+          performedBy,
+        },
+      });
+    } catch (e) {
+      const auditId = "aud_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "AuditLog" ("id", "shop", "action", "entityType", "entityId", "details", "performedBy", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+        auditId,
         shop,
         action,
         entityType,
-        entityId: String(entityId),
-        details,
-        performedBy,
-      },
-    });
+        String(entityId),
+        details || "",
+        performedBy
+      );
+    }
   } catch (e) {
     console.warn("Could not write audit log:", e?.message);
   }
