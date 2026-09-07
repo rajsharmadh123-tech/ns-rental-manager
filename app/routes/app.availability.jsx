@@ -541,56 +541,320 @@ export default function AvailabilityManager() {
 
   return (
     <s-page heading="Smart Inventory Availability & Date Blocker">
+      <style>{`
+        .apple-wrap {
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          color: #2E3346;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .apple-card {
+          background-color: #FFFFFF;
+          border-radius: 16px;
+          border: 1px solid #E2E4EB;
+          box-shadow: 0 4px 20px -2px rgba(46, 51, 70, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+          transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .apple-card-body {
+          padding: 24px;
+        }
+        .apple-segmented-bar {
+          display: inline-flex;
+          background-color: #F1F2F6;
+          padding: 4px;
+          border-radius: 9999px;
+          gap: 4px;
+          border: 1px solid #E2E4EB;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+          flex-wrap: wrap;
+        }
+        .apple-tab-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 20px;
+          border-radius: 9999px;
+          font-size: 13.5px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          outline: none;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          white-space: nowrap;
+          text-decoration: none;
+        }
+        .apple-tab-pill.active {
+          background-color: #7964FF;
+          color: #FFFFFF;
+          box-shadow: 0 3px 12px rgba(121, 100, 255, 0.35);
+        }
+        .apple-tab-pill.inactive {
+          background-color: transparent;
+          color: #646B7C;
+        }
+        .apple-tab-pill.inactive:hover {
+          background-color: rgba(121, 100, 255, 0.08);
+          color: #2E3346;
+        }
+        .apple-input {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1px solid #D8DCE6;
+          background-color: #FAFAFC;
+          font-size: 13.5px;
+          color: #2E3346;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+        .apple-input:focus {
+          outline: none;
+          border-color: #7964FF;
+          background-color: #FFFFFF;
+          box-shadow: 0 0 0 3px rgba(121, 100, 255, 0.16);
+        }
+        .apple-select {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1px solid #D8DCE6;
+          background-color: #FAFAFC;
+          font-size: 13.5px;
+          color: #2E3346;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+          font-family: inherit;
+          cursor: pointer;
+        }
+        .apple-select:focus {
+          outline: none;
+          border-color: #7964FF;
+          background-color: #FFFFFF;
+          box-shadow: 0 0 0 3px rgba(121, 100, 255, 0.16);
+        }
+        .apple-btn-primary {
+          background-color: #7964FF;
+          color: #FFFFFF;
+          border: none;
+          border-radius: 10px;
+          padding: 10px 20px;
+          font-size: 13.5px;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(121, 100, 255, 0.26);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+        .apple-btn-primary:hover:not(:disabled) {
+          background-color: #6852FF;
+          box-shadow: 0 4px 14px rgba(121, 100, 255, 0.36);
+          transform: translateY(-1px);
+        }
+        .apple-btn-primary:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .apple-btn-secondary {
+          background-color: #F0EEFF;
+          color: #7964FF;
+          border: 1px solid #D8D2FF;
+          border-radius: 10px;
+          padding: 9px 18px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          text-decoration: none;
+        }
+        .apple-btn-secondary:hover {
+          background-color: #E6E1FF;
+        }
+        .apple-btn-danger {
+          background-color: #FEF2F2;
+          color: #DC2626;
+          border: 1px solid #FECACA;
+          border-radius: 8px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .apple-btn-danger:hover {
+          background-color: #FEE2E2;
+          border-color: #FCA5A5;
+        }
+        .apple-label {
+          display: block;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #646B7C;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .apple-stat-card {
+          background-color: #F8F9FC;
+          border: 1px solid #EAECEF;
+          border-radius: 12px;
+          padding: 16px;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .apple-stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(46, 51, 70, 0.04);
+        }
+        .apple-table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          font-size: 13.5px;
+        }
+        .apple-table th {
+          background-color: #F8F9FC;
+          color: #646B7C;
+          font-weight: 600;
+          font-size: 11.5px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 14px 18px;
+          border-bottom: 1px solid #E2E4EB;
+          text-align: left;
+        }
+        .apple-table td {
+          padding: 14px 18px;
+          border-bottom: 1px solid #F0F2F6;
+          color: #2E3346;
+          vertical-align: middle;
+        }
+        .apple-table tr:last-child td {
+          border-bottom: none;
+        }
+        .apple-table tr:hover td {
+          background-color: #FAFBFD;
+        }
+        .apple-pill-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 9999px;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+        }
+      `}</style>
 
-      {/* Notifications */}
-      {actionData?.success && (
-        <s-section>
-          <div style={{ padding: "14px 18px", backgroundColor: "#e3f5e1", color: "#166534", borderRadius: "10px", fontWeight: "600", fontSize: "14px" }}>
-            ✅ {actionData.success}
+      <div className="apple-wrap">
+
+        {/* Notifications & Banners */}
+        {actionData?.success && (
+          <div style={{
+            padding: "16px 20px",
+            backgroundColor: "#ECFDF5",
+            color: "#065F46",
+            borderRadius: "14px",
+            border: "1px solid #A7F3D0",
+            fontWeight: "600",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            boxShadow: "0 2px 10px rgba(16, 185, 129, 0.08)",
+          }}>
+            <span style={{ fontSize: "18px" }}>✅</span>
+            <span>{actionData.success}</span>
           </div>
-        </s-section>
-      )}
+        )}
 
-      {actionData?.error && (
-        <s-section>
-          <div style={{ padding: "14px 18px", backgroundColor: "#ffe4e6", color: "#9f1239", borderRadius: "10px", fontWeight: "600", fontSize: "14px" }}>
-            ⚠️ {actionData.error}
+        {actionData?.error && (
+          <div style={{
+            padding: "16px 20px",
+            backgroundColor: "#FEF2F2",
+            color: "#991B1B",
+            borderRadius: "14px",
+            border: "1px solid #FECACA",
+            fontWeight: "600",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            boxShadow: "0 2px 10px rgba(220, 38, 38, 0.08)",
+          }}>
+            <span style={{ fontSize: "18px" }}>⚠️</span>
+            <span>{actionData.error}</span>
           </div>
-        </s-section>
-      )}
+        )}
 
-      {loadError && (
-        <s-section>
-          <div style={{ padding: "14px 18px", backgroundColor: "#fef3c7", color: "#92400e", borderRadius: "10px", fontWeight: "600", fontSize: "14px", border: "1px solid #fde68a" }}>
-            ⚠️ Note: {loadError}
+        {loadError && (
+          <div style={{
+            padding: "14px 18px",
+            backgroundColor: "#FFFBEB",
+            color: "#92400E",
+            borderRadius: "14px",
+            border: "1px solid #FDE68A",
+            fontWeight: "600",
+            fontSize: "13.5px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}>
+            <span>⚠️</span>
+            <span>Note: {loadError}</span>
           </div>
-        </s-section>
-      )}
+        )}
 
-      {/* Overlapping Conflict Warning Modal */}
-      {actionData?.conflictWarning && (
-        <s-section>
-          <div style={{ padding: "18px 20px", backgroundColor: "#fff7ed", border: "2px solid #f97316", borderRadius: "10px", color: "#9a3412" }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: "16px", fontWeight: "700" }}>
-              ⚠️ Availability Conflict Detected!
-            </h4>
-            <p style={{ margin: "0 0 12px", fontSize: "14px" }}>
+        {/* Overlapping Conflict Warning Modal */}
+        {actionData?.conflictWarning && (
+          <div style={{
+            padding: "22px 24px",
+            backgroundColor: "#FFF7ED",
+            border: "1px solid #FED7AA",
+            borderRadius: "16px",
+            color: "#9A3412",
+            boxShadow: "0 6px 24px rgba(249, 115, 22, 0.12)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+              <span style={{ fontSize: "20px" }}>⚠️</span>
+              <h4 style={{ margin: 0, fontSize: "16.5px", fontWeight: "700", color: "#9A3412" }}>
+                Availability Conflict Detected!
+              </h4>
+            </div>
+            <p style={{ margin: "0 0 14px", fontSize: "14px", color: "#9A3412", lineHeight: "1.5" }}>
               {actionData.message}
             </p>
-            <div style={{ marginBottom: "14px", backgroundColor: "#ffedd5", padding: "10px 14px", borderRadius: "8px", fontSize: "13px" }}>
-              <strong>Conflicting Items:</strong>
-              <ul style={{ margin: "6px 0 0", paddingLeft: "20px" }}>
+            <div style={{
+              marginBottom: "16px",
+              backgroundColor: "#FFFFFF",
+              padding: "14px 18px",
+              borderRadius: "12px",
+              border: "1px solid #FFEDD5",
+              fontSize: "13px",
+            }}>
+              <strong style={{ color: "#7C2D12", display: "block", marginBottom: "8px" }}>Conflicting Operational Entries:</strong>
+              <ul style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "6px" }}>
                 {actionData.conflicts?.map((c, i) => (
-                  <li key={i}>
+                  <li key={i} style={{ color: "#431407" }}>
                     <strong>{formatReasonLabel(c.reason || c.type)}:</strong> {formatDisplayDate(c.startDate)} to {formatDisplayDate(c.endDate)} ({c.customerName || c.bookingId || "System Block"})
                   </li>
                 ))}
               </ul>
             </div>
-            <p style={{ fontSize: "13px", margin: "0 0 12px" }}>
+            <p style={{ fontSize: "13px", margin: "0 0 16px", color: "#9A3412" }}>
               Do you still want to force-block these dates? (Accidental overlapping blocks are discouraged).
             </p>
-            <Form method="post" style={{ display: "inline-flex", gap: "10px" }}>
+            <Form method="post" style={{ display: "inline-flex", gap: "10px", flexWrap: "wrap" }}>
               <input type="hidden" name="_action" value="block_dates" />
               <input type="hidden" name="forceOverride" value="true" />
               <input type="hidden" name="productId" value={actionData.pendingBlock?.productId} />
@@ -602,428 +866,512 @@ export default function AvailabilityManager() {
               <input type="hidden" name="customerPhone" value={actionData.pendingBlock?.customerPhone || ""} />
               <input type="hidden" name="internalNote" value={actionData.pendingBlock?.internalNote || ""} />
 
-              <s-button type="submit" tone="critical" disabled={isSubmitting}>
+              <button
+                type="submit"
+                className="apple-btn-danger"
+                style={{ padding: "10px 18px", fontSize: "13.5px" }}
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? "⏳ Overriding Dates..." : "Force Block Overlapping Dates"}
-              </s-button>
-              <Link to={`/app/availability?productId=${encodeURIComponent(actionData.pendingBlock?.productId || "")}`} style={{ textDecoration: "none" }}>
-                <s-button type="button">Cancel</s-button>
+              </button>
+              <Link
+                to={`/app/availability?productId=${encodeURIComponent(actionData.pendingBlock?.productId || "")}`}
+                className="apple-btn-secondary"
+              >
+                Cancel
               </Link>
             </Form>
           </div>
-        </s-section>
-      )}
+        )}
 
-      {/* Navigation Tabs Header */}
-      <s-section>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", borderBottom: "2px solid #E2E4EB", paddingBottom: "10px" }}>
-          <button
-            type="button"
-            onClick={() => handleTabChange("inspector")}
-            style={{
-              padding: "10px 18px",
-              borderRadius: "8px",
-              border: "0",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: "pointer",
-              backgroundColor: currentTab === "inspector" ? "#7964FF" : "#FFFFFF",
-              color: currentTab === "inspector" ? "#FFFFFF" : "#2E3346",
-              boxShadow: currentTab === "inspector" ? "0 2px 8px rgba(121,100,255,0.3)" : "none",
-            }}
-          >
-            🔍 Product Inspector & Date Blocker
-          </button>
+        {/* Apple Segmented Pill Navigation Bar */}
+        <div style={{ display: "flex", justifyContent: "flex-start" }}>
+          <div className="apple-segmented-bar">
+            <button
+              type="button"
+              onClick={() => handleTabChange("inspector")}
+              className={`apple-tab-pill ${currentTab === "inspector" ? "active" : "inactive"}`}
+            >
+              <span>🔍</span>
+              <span>Product Inspector & Blocker</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange("bulk")}
-            style={{
-              padding: "10px 18px",
-              borderRadius: "8px",
-              border: "0",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: "pointer",
-              backgroundColor: currentTab === "bulk" ? "#7964FF" : "#FFFFFF",
-              color: currentTab === "bulk" ? "#FFFFFF" : "#2E3346",
-              boxShadow: currentTab === "bulk" ? "0 2px 8px rgba(121,100,255,0.3)" : "none",
-            }}
-          >
-            📦 Bulk Date Blocking
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("bulk")}
+              className={`apple-tab-pill ${currentTab === "bulk" ? "active" : "inactive"}`}
+            >
+              <span>📦</span>
+              <span>Bulk Date Blocking</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange("storewide")}
-            style={{
-              padding: "10px 18px",
-              borderRadius: "8px",
-              border: "0",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: "pointer",
-              backgroundColor: currentTab === "storewide" ? "#7964FF" : "#FFFFFF",
-              color: currentTab === "storewide" ? "#FFFFFF" : "#2E3346",
-              boxShadow: currentTab === "storewide" ? "0 2px 8px rgba(121,100,255,0.3)" : "none",
-            }}
-          >
-            📋 Store-Wide Blocked Inventory ({storeWideBlocks.length})
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("storewide")}
+              className={`apple-tab-pill ${currentTab === "storewide" ? "active" : "inactive"}`}
+            >
+              <span>📋</span>
+              <span>Store-Wide Blocked ({storeWideBlocks.length})</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange("search_dates")}
-            style={{
-              padding: "10px 18px",
-              borderRadius: "8px",
-              border: "0",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: "pointer",
-              backgroundColor: currentTab === "search_dates" ? "#7964FF" : "#FFFFFF",
-              color: currentTab === "search_dates" ? "#FFFFFF" : "#2E3346",
-              boxShadow: currentTab === "search_dates" ? "0 2px 8px rgba(121,100,255,0.3)" : "none",
-            }}
-          >
-            🔎 Availability Search (Date & Category)
-          </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("search_dates")}
+              className={`apple-tab-pill ${currentTab === "search_dates" ? "active" : "inactive"}`}
+            >
+              <span>🔎</span>
+              <span>Search Availability by Date</span>
+            </button>
+          </div>
         </div>
-      </s-section>
 
-      {/* =========================================================================
-          TAB 1: PRODUCT AVAILABILITY INSPECTOR & DATE BLOCKER
-          ========================================================================= */}
-      {currentTab === "inspector" && (
-        <>
-          {/* Search Bar & Dropdown */}
-          <s-section>
-            <s-box padding="base" borderWidth="base" borderRadius="base">
-              <Form method="get" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <input type="hidden" name="tab" value="inspector" />
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="text"
-                    name="search"
-                    defaultValue={search}
-                    placeholder="Search outfit by Title, SKU, or Keyword..."
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid #D8D2FF", fontSize: "14px", boxSizing: "border-box" }}
-                  />
-                </div>
-                <s-button type="submit">Search</s-button>
-
-                {products.length > 0 && (
-                  <div style={{ minWidth: "260px" }}>
-                    <select
-                      value={selectedProduct?.id || ""}
-                      onChange={(e) => {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set("productId", e.target.value);
-                        url.searchParams.set("tab", "inspector");
-                        window.location.href = url.toString();
-                      }}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #D8D2FF", fontSize: "14px" }}
-                    >
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.title}
-                        </option>
-                      ))}
-                    </select>
+        {/* =========================================================================
+            TAB 1: PRODUCT AVAILABILITY INSPECTOR & DATE BLOCKER
+            ========================================================================= */}
+        {currentTab === "inspector" && (
+          <>
+            {/* Search Bar & Dropdown Header Card */}
+            <div className="apple-card">
+              <div style={{ padding: "18px 24px" }}>
+                <Form method="get" style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                  <input type="hidden" name="tab" value="inspector" />
+                  <div style={{ flex: 1, minWidth: "260px" }}>
+                    <input
+                      type="text"
+                      name="search"
+                      defaultValue={search}
+                      placeholder="Search outfit by Title, SKU, or Keyword..."
+                      className="apple-input"
+                    />
                   </div>
-                )}
-              </Form>
-            </s-box>
-          </s-section>
+                  <button type="submit" className="apple-btn-primary">
+                    Search
+                  </button>
 
-          {/* Product Inspector Banner */}
-          {selectedProduct ? (
-            <>
-              <s-section>
-                <s-box padding="base" borderWidth="base" borderRadius="base" style={{ backgroundColor: "#FFFFFF" }}>
-                  <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
-                    {selectedProduct.featuredImage?.url ? (
-                      <img
-                        src={selectedProduct.featuredImage.url}
-                        alt={selectedProduct.title}
-                        style={{ width: "90px", height: "90px", objectFit: "cover", borderRadius: "10px", border: "1px solid #E2E4EB" }}
-                      />
-                    ) : (
-                      <div style={{ width: "90px", height: "90px", backgroundColor: "#F0EEFF", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "36px" }}>
-                        👗
-                      </div>
-                    )}
+                  {products.length > 0 && (
+                    <div style={{ minWidth: "280px" }}>
+                      <select
+                        value={selectedProduct?.id || ""}
+                        onChange={(e) => {
+                          const url = new URL(window.location.href);
+                          url.searchParams.set("productId", e.target.value);
+                          url.searchParams.set("tab", "inspector");
+                          window.location.href = url.toString();
+                        }}
+                        className="apple-select"
+                      >
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </Form>
+              </div>
+            </div>
 
-                    <div style={{ flex: 1, minWidth: "240px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                        <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "700" }}>{selectedProduct.title}</h3>
-                        <span
+            {/* Product Spotlight Card & KPI Metric Counters */}
+            {selectedProduct ? (
+              <>
+                <div className="apple-card">
+                  <div className="apple-card-body">
+                    <div style={{ display: "flex", gap: "22px", flexWrap: "wrap", alignItems: "center" }}>
+                      {selectedProduct.featuredImage?.url ? (
+                        <img
+                          src={selectedProduct.featuredImage.url}
+                          alt={selectedProduct.title}
                           style={{
-                            backgroundColor: todayStatus.color + "18",
-                            color: todayStatus.color,
-                            border: `1px solid ${todayStatus.color}40`,
-                            padding: "4px 10px",
-                            borderRadius: "20px",
-                            fontSize: "12px",
-                            fontWeight: "700",
+                            width: "96px",
+                            height: "96px",
+                            objectFit: "cover",
+                            borderRadius: "14px",
+                            border: "1px solid #E2E4EB",
+                            boxShadow: "0 2px 8px rgba(46, 51, 70, 0.06)",
                           }}
-                        >
-                          {todayStatus.label}
-                        </span>
+                        />
+                      ) : (
+                        <div style={{
+                          width: "96px",
+                          height: "96px",
+                          backgroundColor: "#F0EEFF",
+                          borderRadius: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "40px",
+                          border: "1px solid #D8D2FF",
+                        }}>
+                          👗
+                        </div>
+                      )}
+
+                      <div style={{ flex: 1, minWidth: "260px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px", flexWrap: "wrap" }}>
+                          <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "700", color: "#2E3346", letterSpacing: "-0.01em" }}>
+                            {selectedProduct.title}
+                          </h3>
+                          <span
+                            className="apple-pill-badge"
+                            style={{
+                              backgroundColor: todayStatus.color + "14",
+                              color: todayStatus.color,
+                              border: `1px solid ${todayStatus.color}35`,
+                            }}
+                          >
+                            {todayStatus.label}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12.5px" }}>
+                          <span style={{
+                            backgroundColor: "#F8F9FC",
+                            padding: "4px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #E2E4EB",
+                            color: "#646B7C",
+                          }}>
+                            Shopify Price: <strong style={{ color: "#2E3346" }}>₹{selectedProduct.variants?.nodes[0]?.price || "N/A"}</strong>
+                          </span>
+                          <span style={{
+                            backgroundColor: "#F0EEFF",
+                            padding: "4px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #D8D2FF",
+                            color: "#7964FF",
+                            fontWeight: "600",
+                          }}>
+                            Configured Rent: ₹{productConfig?.rentalPrice || "—"}
+                          </span>
+                          <span style={{
+                            backgroundColor: "#F8F9FC",
+                            padding: "4px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #E2E4EB",
+                            color: "#646B7C",
+                          }}>
+                            Deposit: <strong style={{ color: "#2E3346" }}>₹{productConfig?.securityDeposit || "—"}</strong>
+                          </span>
+                          <span style={{
+                            backgroundColor: "#F8F9FC",
+                            padding: "4px 10px",
+                            borderRadius: "8px",
+                            border: "1px solid #E2E4EB",
+                            color: "#646B7C",
+                          }}>
+                            Category: <strong style={{ color: "#2E3346" }}>{selectedProduct.productType || "Outfit"}</strong>
+                          </span>
+                        </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#646B7C" }}>
-                        <span>Shopify Price: <strong>₹{selectedProduct.variants?.nodes[0]?.price || "N/A"}</strong></span>
-                        <span>Configured Rent: <strong>₹{productConfig?.rentalPrice || "—"}</strong></span>
-                        <span>Deposit: <strong>₹{productConfig?.securityDeposit || "—"}</strong></span>
-                        <span>Category: <strong>{selectedProduct.productType || "Outfit"}</strong></span>
+                      {/* Operational Status Toggle */}
+                      <div>
+                        <Form method="post">
+                          <input type="hidden" name="_action" value="toggle_product_status" />
+                          <input type="hidden" name="productId" value={selectedProduct.id} />
+                          <input
+                            type="hidden"
+                            name="isEnabled"
+                            value={productConfig?.isEnabled === false ? "true" : "false"}
+                          />
+                          <button
+                            type="submit"
+                            style={{
+                              padding: "9px 16px",
+                              borderRadius: "10px",
+                              border: productConfig?.isEnabled === false ? "1px solid #A7F3D0" : "1px solid #FECACA",
+                              backgroundColor: productConfig?.isEnabled === false ? "#ECFDF5" : "#FEF2F2",
+                              color: productConfig?.isEnabled === false ? "#059669" : "#DC2626",
+                              fontSize: "12.5px",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                            }}
+                          >
+                            {productConfig?.isEnabled === false ? "✅ Mark Available for Rent" : "⛔ Mark Out of Service"}
+                          </button>
+                        </Form>
                       </div>
                     </div>
 
-                    {/* Operational Toggle */}
-                    <div style={{ textAlign: "right" }}>
-                      <Form method="post">
-                        <input type="hidden" name="_action" value="toggle_product_status" />
+                    {/* 4 Cupertino KPI Metric Cards */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginTop: "24px", borderTop: "1px solid #F0F2F6", paddingTop: "20px" }}>
+                      <div className="apple-stat-card">
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#EF4444" }} />
+                          <span className="apple-label" style={{ margin: 0 }}>Next Booking</span>
+                        </div>
+                        <h4 style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "700", color: "#EF4444" }}>
+                          {nextBookingDate || "No upcoming"}
+                        </h4>
+                      </div>
+
+                      <div className="apple-stat-card">
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#3B82F6" }} />
+                          <span className="apple-label" style={{ margin: 0 }}>Next Scheduled Block</span>
+                        </div>
+                        <h4 style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "700", color: "#3B82F6" }}>
+                          {nextBlockDate || "No upcoming"}
+                        </h4>
+                      </div>
+
+                      <div className="apple-stat-card">
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#7964FF" }} />
+                          <span className="apple-label" style={{ margin: 0 }}>Upcoming Bookings</span>
+                        </div>
+                        <h4 style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "700", color: "#7964FF" }}>
+                          {activeRentals.length} Bookings
+                        </h4>
+                      </div>
+
+                      <div className="apple-stat-card">
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#646B7C" }} />
+                          <span className="apple-label" style={{ margin: 0 }}>Active Operational Blocks</span>
+                        </div>
+                        <h4 style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "700", color: "#2E3346" }}>
+                          {activeBlocks.length} Active
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2-Column Split: Instant Date Checker & Manual Date Blocker Form */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "20px" }}>
+
+                  {/* Column 1: Instant Date Availability Checker */}
+                  <div className="apple-card">
+                    <div className="apple-card-body">
+                      <div style={{ marginBottom: "16px" }}>
+                        <h4 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: "700", color: "#2E3346" }}>
+                          🔎 Instant Date Availability Checker
+                        </h4>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#646B7C" }}>
+                          Verify if this outfit is available before taking custom customer inquiries or phone bookings.
+                        </p>
+                      </div>
+
+                      <Form method="get">
+                        <input type="hidden" name="tab" value="inspector" />
                         <input type="hidden" name="productId" value={selectedProduct.id} />
-                        <input
-                          type="hidden"
-                          name="isEnabled"
-                          value={productConfig?.isEnabled === false ? "true" : "false"}
-                        />
-                        <button
-                          type="submit"
+                        <input type="hidden" name="search" value={search} />
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                          <div>
+                            <label className="apple-label">Pickup Date</label>
+                            <input
+                              type="date"
+                              name="checkPickup"
+                              defaultValue={checkPickup}
+                              required
+                              className="apple-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="apple-label">Return Date</label>
+                            <input
+                              type="date"
+                              name="checkReturn"
+                              defaultValue={checkReturn}
+                              required
+                              className="apple-input"
+                            />
+                          </div>
+                        </div>
+
+                        <button type="submit" className="apple-btn-primary" style={{ width: "100%" }}>
+                          Check Availability
+                        </button>
+                      </Form>
+
+                      {/* Checker Result Display */}
+                      {checkResult && (
+                        <div
                           style={{
-                            padding: "8px 14px",
-                            borderRadius: "6px",
-                            border: "1px solid #ccc",
-                            backgroundColor: productConfig?.isEnabled === false ? "#16a34a" : "#dc2626",
-                            color: "#FFFFFF",
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            cursor: "pointer",
+                            marginTop: "18px",
+                            padding: "16px 18px",
+                            borderRadius: "12px",
+                            backgroundColor: checkResult.isAvailable ? "#ECFDF5" : "#FEF2F2",
+                            border: `1px solid ${checkResult.isAvailable ? "#A7F3D0" : "#FECACA"}`,
                           }}
                         >
-                          {productConfig?.isEnabled === false ? "✅ Mark Available for Rent" : "⛔ Mark Out of Service"}
+                          <strong style={{ display: "block", fontSize: "14px", color: checkResult.isAvailable ? "#065F46" : "#991B1B" }}>
+                            {checkResult.isAvailable ? "🎉 Outfit is Available!" : "⚠️ Unavailable for these dates"}
+                          </strong>
+                          <p style={{ margin: "6px 0 0", fontSize: "13px", color: checkResult.isAvailable ? "#047857" : "#B91C1C" }}>
+                            {checkResult.message}
+                          </p>
+
+                          {/* Admin detailed conflicts breakdown */}
+                          {!checkResult.isAvailable && checkResult.conflicts?.length > 0 && (
+                            <div style={{ marginTop: "12px", fontSize: "12.5px", borderTop: "1px dashed #FECACA", paddingTop: "10px" }}>
+                              <strong style={{ color: "#991B1B" }}>Conflicting Operational Entries:</strong>
+                              <ul style={{ margin: "6px 0 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                {checkResult.conflicts.map((c, i) => (
+                                  <li key={i} style={{ color: "#7F1D1D" }}>
+                                    <strong>{formatReasonLabel(c.reason || c.type)}:</strong> {formatDisplayDate(c.startDate)} to {formatDisplayDate(c.endDate)}
+                                    {c.customerName ? ` (${c.customerName})` : ""}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Column 2: Manual Date Blocker Form */}
+                  <div className="apple-card">
+                    <div className="apple-card-body">
+                      <div style={{ marginBottom: "16px" }}>
+                        <h4 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: "700", color: "#2E3346" }}>
+                          🔒 Block Dates for this Outfit
+                        </h4>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#646B7C" }}>
+                          Block single date or date ranges for In-Store Bookings, Dry Cleaning, Fitting, or Maintenance.
+                        </p>
+                      </div>
+
+                      <Form method="post">
+                        <input type="hidden" name="_action" value="block_dates" />
+                        <input type="hidden" name="productId" value={selectedProduct.id} />
+                        <input type="hidden" name="productTitle" value={selectedProduct.title} />
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                          <div>
+                            <label className="apple-label">Start Date *</label>
+                            <input
+                              type="date"
+                              name="startDate"
+                              required
+                              className="apple-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="apple-label">End Date *</label>
+                            <input
+                              type="date"
+                              name="endDate"
+                              required
+                              className="apple-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: "12px" }}>
+                          <label className="apple-label">Block Reason *</label>
+                          <select
+                            name="reason"
+                            required
+                            className="apple-select"
+                          >
+                            <option value="OFFLINE_BOOKING">🏬 Offline / In-Store Customer Booking</option>
+                            <option value="CLEANING">🧼 Cleaning & Washing</option>
+                            <option value="ALTERATION">✂️ Alteration, Fitting & Tailoring</option>
+                            <option value="MAINTENANCE">⚫ Maintenance, Steaming & Repair</option>
+                            <option value="CUSTOMER_HOLD">🟡 Customer Hold (Trial / Measurement)</option>
+                            <option value="DAMAGED">🔴 Damaged / Under Restoration</option>
+                            <option value="LOST">❌ Lost Inventory</option>
+                            <option value="PERSONAL_USE">👤 Personal / Studio Shoot Use</option>
+                            <option value="OTHER">📝 Other / Manual Admin Block</option>
+                          </select>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                          <div>
+                            <label className="apple-label">Customer Name (Optional)</label>
+                            <input
+                              type="text"
+                              name="customerName"
+                              placeholder="e.g. Rahul Sharma"
+                              className="apple-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="apple-label">Phone (Optional)</label>
+                            <input
+                              type="text"
+                              name="customerPhone"
+                              placeholder="e.g. 9876543210"
+                              className="apple-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: "16px" }}>
+                          <label className="apple-label">Internal Operational Note</label>
+                          <input
+                            type="text"
+                            name="internalNote"
+                            placeholder="e.g. Blouse alteration for reception; dry cleaning at City Centre"
+                            className="apple-input"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="apple-btn-primary"
+                          style={{ width: "100%" }}
+                        >
+                          {isSubmitting ? "⏳ Blocking Dates..." : "🔒 Block Dates"}
                         </button>
                       </Form>
                     </div>
                   </div>
 
-                  {/* 4 Metric Counters */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginTop: "20px", borderTop: "1px solid #E2E4EB", paddingTop: "16px" }}>
-                    <div style={{ backgroundColor: "#F8F9FC", padding: "12px", borderRadius: "8px" }}>
-                      <span style={{ fontSize: "12px", color: "#646B7C" }}>Next Booking</span>
-                      <h4 style={{ margin: "4px 0 0", fontSize: "16px", color: "#ef4444" }}>{nextBookingDate || "No upcoming"}</h4>
-                    </div>
-
-                    <div style={{ backgroundColor: "#F8F9FC", padding: "12px", borderRadius: "8px" }}>
-                      <span style={{ fontSize: "12px", color: "#646B7C" }}>Next Scheduled Block</span>
-                      <h4 style={{ margin: "4px 0 0", fontSize: "16px", color: "#3b82f6" }}>{nextBlockDate || "No upcoming"}</h4>
-                    </div>
-
-                    <div style={{ backgroundColor: "#F8F9FC", padding: "12px", borderRadius: "8px" }}>
-                      <span style={{ fontSize: "12px", color: "#646B7C" }}>Upcoming Bookings</span>
-                      <h4 style={{ margin: "4px 0 0", fontSize: "16px" }}>{activeRentals.length} Bookings</h4>
-                    </div>
-
-                    <div style={{ backgroundColor: "#F8F9FC", padding: "12px", borderRadius: "8px" }}>
-                      <span style={{ fontSize: "12px", color: "#646B7C" }}>Active Blocks (Cleaning/Maint)</span>
-                      <h4 style={{ margin: "4px 0 0", fontSize: "16px" }}>{activeBlocks.length} Active</h4>
-                    </div>
-                  </div>
-                </s-box>
-              </s-section>
-
-              {/* 2-Column Split: Instant Date Checker & Manual Date Blocker Form */}
-              <s-section>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-
-                  {/* Column 1: Instant Date Checker */}
-                  <s-box padding="base" borderWidth="base" borderRadius="base">
-                    <h4 style={{ margin: "0 0 8px", fontSize: "16px", fontWeight: "700" }}>
-                      🔎 Instant Date Availability Checker
-                    </h4>
-                    <p style={{ margin: "0 0 14px", fontSize: "12.5px", color: "#646B7C" }}>
-                      Verify if this outfit is available before taking custom customer inquiries or phone bookings.
-                    </p>
-
-                    <Form method="get">
-                      <input type="hidden" name="tab" value="inspector" />
-                      <input type="hidden" name="productId" value={selectedProduct.id} />
-                      <input type="hidden" name="search" value={search} />
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Pickup Date</label>
-                          <input
-                            type="date"
-                            name="checkPickup"
-                            defaultValue={checkPickup}
-                            required
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Return Date</label>
-                          <input
-                            type="date"
-                            name="checkReturn"
-                            defaultValue={checkReturn}
-                            required
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                      </div>
-
-                      <s-button type="submit" style={{ width: "100%" }}>Check Availability</s-button>
-                    </Form>
-
-                    {/* Checker Result Display */}
-                    {checkResult && (
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          padding: "14px",
-                          borderRadius: "8px",
-                          backgroundColor: checkResult.isAvailable ? "#e3f5e1" : "#ffe4e6",
-                          border: `1px solid ${checkResult.isAvailable ? "#bbf7d0" : "#fecdd3"}`,
-                        }}
-                      >
-                        <strong style={{ display: "block", fontSize: "14px", color: checkResult.isAvailable ? "#166534" : "#9f1239" }}>
-                          {checkResult.isAvailable ? "🎉 Outfit is Available!" : "⚠️ Unavailable for these dates"}
-                        </strong>
-                        <p style={{ margin: "4px 0 0", fontSize: "13px", color: checkResult.isAvailable ? "#166534" : "#9f1239" }}>
-                          {checkResult.message}
-                        </p>
-
-                        {/* Admin detailed conflicts breakdown */}
-                        {!checkResult.isAvailable && checkResult.conflicts?.length > 0 && (
-                          <div style={{ marginTop: "10px", fontSize: "12px", borderTop: "1px dashed #fecdd3", paddingTop: "8px" }}>
-                            <strong>Conflicting Operational Entries:</strong>
-                            <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
-                              {checkResult.conflicts.map((c, i) => (
-                                <li key={i}>
-                                  <strong>{formatReasonLabel(c.reason || c.type)}:</strong> {formatDisplayDate(c.startDate)} to {formatDisplayDate(c.endDate)}
-                                  {c.customerName ? ` (${c.customerName})` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </s-box>
-
-                  {/* Column 2: Manual Date Blocker Form */}
-                  <s-box padding="base" borderWidth="base" borderRadius="base">
-                    <h4 style={{ margin: "0 0 8px", fontSize: "16px", fontWeight: "700" }}>
-                      🔒 Block Dates for this Outfit
-                    </h4>
-                    <p style={{ margin: "0 0 14px", fontSize: "12.5px", color: "#646B7C" }}>
-                      Block single date or date ranges for In-Store Bookings, Dry Cleaning, Fitting, or Maintenance.
-                    </p>
-
-                    <Form method="post">
-                      <input type="hidden" name="_action" value="block_dates" />
-                      <input type="hidden" name="productId" value={selectedProduct.id} />
-                      <input type="hidden" name="productTitle" value={selectedProduct.title} />
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Start Date *</label>
-                          <input
-                            type="date"
-                            name="startDate"
-                            required
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>End Date *</label>
-                          <input
-                            type="date"
-                            name="endDate"
-                            required
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: "10px" }}>
-                        <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Block Reason *</label>
-                        <select
-                          name="reason"
-                          required
-                          style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "13px" }}
-                        >
-                          <option value="OFFLINE_BOOKING">🏬 Offline / In-Store Customer Booking</option>
-                          <option value="CLEANING">🧼 Cleaning & Washing</option>
-                          <option value="ALTERATION">✂️ Alteration, Fitting & Tailoring</option>
-                          <option value="MAINTENANCE">⚫ Maintenance, Steaming & Repair</option>
-                          <option value="CUSTOMER_HOLD">🟡 Customer Hold (Trial / Measurement)</option>
-                          <option value="DAMAGED">🔴 Damaged / Under Restoration</option>
-                          <option value="LOST">❌ Lost Inventory</option>
-                          <option value="PERSONAL_USE">👤 Personal / Studio Shoot Use</option>
-                          <option value="OTHER">📝 Other / Manual Admin Block</option>
-                        </select>
-                      </div>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Customer Name (Optional)</label>
-                          <input
-                            type="text"
-                            name="customerName"
-                            placeholder="e.g. Rahul Sharma"
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Phone (Optional)</label>
-                          <input
-                            type="text"
-                            name="customerPhone"
-                            placeholder="e.g. 9876543210"
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: "12px" }}>
-                        <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Internal Operational Note</label>
-                        <input
-                          type="text"
-                          name="internalNote"
-                          placeholder="e.g. Blouse alteration for reception; dry cleaning at City Centre branch"
-                          style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                        />
-                      </div>
-
-                      <s-button type="submit" disabled={isSubmitting} style={{ width: "100%" }}>
-                        {isSubmitting ? "⏳ Blocking Dates..." : "🔒 Block Dates"}
-                      </s-button>
-                    </Form>
-                  </s-box>
-
                 </div>
-              </s-section>
 
-              {/* Unified Schedule Table: Bookings & Active Blocks for this Product */}
-              <s-section heading={`Upcoming Bookings & Blocked Dates Schedule (${activeRentals.length + activeBlocks.length})`}>
-                <s-box padding="base" borderWidth="base" borderRadius="base">
+                {/* Unified Schedule Table: Bookings & Active Blocks for this Product */}
+                <div className="apple-card">
+                  <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E4EB", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: "700", color: "#2E3346" }}>
+                        Upcoming Bookings & Blocked Dates Schedule
+                      </h4>
+                      <p style={{ margin: 0, fontSize: "12.5px", color: "#646B7C" }}>
+                        All scheduled operational blocks and confirmed rentals for this outfit.
+                      </p>
+                    </div>
+                    <span style={{
+                      backgroundColor: "#F0EEFF",
+                      color: "#7964FF",
+                      border: "1px solid #D8D2FF",
+                      padding: "4px 12px",
+                      borderRadius: "9999px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                    }}>
+                      {activeRentals.length + activeBlocks.length} Scheduled
+                    </span>
+                  </div>
+
                   {activeRentals.length === 0 && activeBlocks.length === 0 ? (
-                    <p style={{ margin: 0, padding: "16px", color: "#646B7C", textAlign: "center" }}>
-                      No active bookings or date blocks for this outfit. It is completely available for rent!
-                    </p>
+                    <div style={{ padding: "40px 20px", textAlign: "center", color: "#646B7C" }}>
+                      <span style={{ fontSize: "36px", display: "block", marginBottom: "10px" }}>✨</span>
+                      <strong style={{ fontSize: "15px", color: "#2E3346", display: "block", marginBottom: "4px" }}>
+                        No Active Bookings or Blocks
+                      </strong>
+                      <p style={{ margin: 0, fontSize: "13px" }}>
+                        This outfit is completely available for customer orders and reservations.
+                      </p>
+                    </div>
                   ) : (
                     <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+                      <table className="apple-table">
                         <thead>
-                          <tr style={{ backgroundColor: "#F8F9FC", borderBottom: "2px solid #E2E4EB", textAlign: "left" }}>
-                            <th style={{ padding: "12px" }}>Type / Reason</th>
-                            <th style={{ padding: "12px" }}>Dates Range</th>
-                            <th style={{ padding: "12px" }}>Duration</th>
-                            <th style={{ padding: "12px" }}>Customer / Staff Note</th>
-                            <th style={{ padding: "12px", textAlign: "right" }}>Action</th>
+                          <tr>
+                            <th>Type / Reason</th>
+                            <th>Dates Range</th>
+                            <th>Duration</th>
+                            <th>Customer / Staff Note</th>
+                            <th style={{ textAlign: "right" }}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1035,32 +1383,29 @@ export default function AvailabilityManager() {
                             const color = getReasonColor(b.reason);
 
                             return (
-                              <tr key={b.id} style={{ borderBottom: "1px solid #E2E4EB" }}>
-                                <td style={{ padding: "12px" }}>
+                              <tr key={b.id}>
+                                <td>
                                   <span
+                                    className="apple-pill-badge"
                                     style={{
-                                      backgroundColor: color + "18",
+                                      backgroundColor: color + "14",
                                       color: color,
-                                      border: `1px solid ${color}40`,
-                                      padding: "3px 8px",
-                                      borderRadius: "6px",
-                                      fontSize: "12px",
-                                      fontWeight: "700",
+                                      border: `1px solid ${color}35`,
                                     }}
                                   >
                                     {formatReasonLabel(b.reason)}
                                   </span>
                                 </td>
-                                <td style={{ padding: "12px", fontWeight: "600" }}>
-                                  {formatDisplayDate(b.startDate)} ➔ {formatDisplayDate(b.endDate)}
+                                <td style={{ fontWeight: "600", color: "#2E3346" }}>
+                                  {formatDisplayDate(b.startDate)} <span style={{ color: "#7964FF" }}>➔</span> {formatDisplayDate(b.endDate)}
                                 </td>
-                                <td style={{ padding: "12px" }}>{days} Days</td>
-                                <td style={{ padding: "12px", color: "#2E3346" }}>
+                                <td>{days} Days</td>
+                                <td>
                                   {b.customerName && <div><strong>Customer:</strong> {b.customerName} {b.customerPhone ? `(${b.customerPhone})` : ""}</div>}
-                                  {b.internalNote && <div style={{ fontSize: "12px", color: "#646B7C" }}>{b.internalNote}</div>}
-                                  {!b.customerName && !b.internalNote && <span style={{ color: "#999" }}>—</span>}
+                                  {b.internalNote && <div style={{ fontSize: "12px", color: "#646B7C", marginTop: "2px" }}>{b.internalNote}</div>}
+                                  {!b.customerName && !b.internalNote && <span style={{ color: "#A0A7B5" }}>—</span>}
                                 </td>
-                                <td style={{ padding: "12px", textAlign: "right" }}>
+                                <td style={{ textAlign: "right" }}>
                                   <Form
                                     method="post"
                                     onSubmit={(e) => {
@@ -1073,16 +1418,7 @@ export default function AvailabilityManager() {
                                     <input type="hidden" name="blockId" value={b.id} />
                                     <button
                                       type="submit"
-                                      style={{
-                                        backgroundColor: "#fef2f2",
-                                        border: "1px solid #f87171",
-                                        color: "#b91c1c",
-                                        padding: "4px 10px",
-                                        borderRadius: "6px",
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        cursor: "pointer",
-                                      }}
+                                      className="apple-btn-danger"
                                     >
                                       Unblock ✕
                                     </button>
@@ -1099,34 +1435,31 @@ export default function AvailabilityManager() {
                             const days = Math.max(1, Math.round((ret - p) / 86400000) + 1);
 
                             return (
-                              <tr key={r.id} style={{ borderBottom: "1px solid #E2E4EB" }}>
-                                <td style={{ padding: "12px" }}>
+                              <tr key={r.id}>
+                                <td>
                                   <span
+                                    className="apple-pill-badge"
                                     style={{
-                                      backgroundColor: r.status === "OFFLINE_BOOKED" ? "#ffedd5" : "#fee2e2",
-                                      color: r.status === "OFFLINE_BOOKED" ? "#c2410c" : "#b91c1c",
-                                      border: `1px solid ${r.status === "OFFLINE_BOOKED" ? "#fdba74" : "#fca5a5"}`,
-                                      padding: "3px 8px",
-                                      borderRadius: "6px",
-                                      fontSize: "12px",
-                                      fontWeight: "700",
+                                      backgroundColor: r.status === "OFFLINE_BOOKED" ? "#FFF7ED" : "#FEF2F2",
+                                      color: r.status === "OFFLINE_BOOKED" ? "#D97706" : "#DC2626",
+                                      border: `1px solid ${r.status === "OFFLINE_BOOKED" ? "#FED7AA" : "#FECACA"}`,
                                     }}
                                   >
                                     {r.status === "OFFLINE_BOOKED" ? "🏬 In-Store Booking" : "🔴 Customer Online Rental"}
                                   </span>
                                 </td>
-                                <td style={{ padding: "12px", fontWeight: "600" }}>
-                                  {formatDisplayDate(r.pickupDate)} ➔ {formatDisplayDate(r.returnDate)}
+                                <td style={{ fontWeight: "600", color: "#2E3346" }}>
+                                  {formatDisplayDate(r.pickupDate)} <span style={{ color: "#7964FF" }}>➔</span> {formatDisplayDate(r.returnDate)}
                                 </td>
-                                <td style={{ padding: "12px" }}>{days} Days</td>
-                                <td style={{ padding: "12px" }}>
-                                  <div><strong>{r.customerName}</strong> ({r.customerPhone})</div>
-                                  <div style={{ fontSize: "11px", color: "#646B7C" }}>Booking ID: {r.bookingId || r.id.slice(-6)}</div>
+                                <td>{days} Days</td>
+                                <td>
+                                  <div><strong>{r.customerName}</strong> {r.customerPhone ? `(${r.customerPhone})` : ""}</div>
+                                  <div style={{ fontSize: "11.5px", color: "#646B7C", marginTop: "2px" }}>Booking ID: {r.bookingId || r.id.slice(-6)}</div>
                                 </td>
-                                <td style={{ padding: "12px", textAlign: "right" }}>
+                                <td style={{ textAlign: "right" }}>
                                   <Link
                                     to={`/app/rentals/${r.id}`}
-                                    style={{ fontSize: "12px", color: "#7964FF", fontWeight: "600", textDecoration: "none" }}
+                                    className="apple-btn-secondary"
                                   >
                                     View Rental ➔
                                   </Link>
@@ -1138,199 +1471,254 @@ export default function AvailabilityManager() {
                       </table>
                     </div>
                   )}
-                </s-box>
-              </s-section>
-            </>
-          ) : (
-            <s-section>
-              <s-box padding="base" borderWidth="base" borderRadius="base">
-                <p style={{ margin: 0, textAlign: "center", color: "#646B7C" }}>
-                  No products found. Please search for an outfit to view and manage its availability.
+                </div>
+              </>
+            ) : (
+              <div className="apple-card">
+                <div style={{ padding: "40px 20px", textAlign: "center", color: "#646B7C" }}>
+                  <span style={{ fontSize: "36px", display: "block", marginBottom: "10px" }}>🔍</span>
+                  <p style={{ margin: 0, fontSize: "14px" }}>
+                    No products found. Please search for an outfit to view and manage its availability.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* =========================================================================
+            TAB 2: BULK DATE BLOCKING
+            ========================================================================= */}
+        {currentTab === "bulk" && (
+          <div className="apple-card">
+            <div className="apple-card-body">
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "700", color: "#2E3346" }}>
+                  📦 Bulk Date Blocking Across Multiple Outfits
+                </h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#646B7C" }}>
+                  Select multiple dresses or jewellery sets to block them simultaneously for maintenance, seasonal dry cleaning, or bulk hold.
                 </p>
-              </s-box>
-            </s-section>
-          )}
-        </>
-      )}
-
-      {/* =========================================================================
-          TAB 2: BULK DATE BLOCKING
-          ========================================================================= */}
-      {currentTab === "bulk" && (
-        <s-section>
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "700" }}>
-              📦 Bulk Date Blocking Across Multiple Outfits
-            </h3>
-            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#646B7C" }}>
-              Select multiple dresses or jewellery sets to block them simultaneously for maintenance, seasonal dry cleaning, or bulk hold.
-            </p>
-
-            <Form method="post">
-              <input type="hidden" name="_action" value="bulk_block" />
-              <input type="hidden" name="productIds" value={selectedProductIds.join(",")} />
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "16px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Start Date *</label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    required
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>End Date *</label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    required
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Block Reason *</label>
-                  <select
-                    name="reason"
-                    required
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "13px" }}
-                  >
-                    <option value="MAINTENANCE">⚫ Maintenance, Steaming & Repair</option>
-                    <option value="CLEANING">🧼 Cleaning & Washing</option>
-                    <option value="CUSTOMER_HOLD">🟡 Customer Hold</option>
-                    <option value="OFFLINE_BOOKING">🏬 Offline / In-Store Booking</option>
-                    <option value="OTHER">📝 Other</option>
-                  </select>
-                </div>
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Internal Note</label>
-                <input
-                  type="text"
-                  name="internalNote"
-                  placeholder="e.g. Scheduled deep dry-cleaning post wedding rush"
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                />
-              </div>
+              <Form method="post">
+                <input type="hidden" name="_action" value="bulk_block" />
+                <input type="hidden" name="productIds" value={selectedProductIds.join(",")} />
 
-              {/* Product Selection List */}
-              <div style={{ border: "1px solid #E2E4EB", borderRadius: "8px", overflow: "hidden", marginBottom: "16px" }}>
-                <div style={{ padding: "10px 14px", backgroundColor: "#F8F9FC", borderBottom: "1px solid #E2E4EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong>Select Outfits ({selectedProductIds.length} Selected)</strong>
-                  <button
-                    type="button"
-                    onClick={selectAllProducts}
-                    style={{ background: "transparent", border: "0", color: "#7964FF", fontWeight: "600", cursor: "pointer", fontSize: "12px" }}
-                  >
-                    {selectedProductIds.length === products.length ? "Deselect All" : "Select All Products"}
-                  </button>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+                  <div>
+                    <label className="apple-label">Start Date *</label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      required
+                      className="apple-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="apple-label">End Date *</label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      required
+                      className="apple-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="apple-label">Block Reason *</label>
+                    <select
+                      name="reason"
+                      required
+                      className="apple-select"
+                    >
+                      <option value="MAINTENANCE">⚫ Maintenance, Steaming & Repair</option>
+                      <option value="CLEANING">🧼 Cleaning & Washing</option>
+                      <option value="CUSTOMER_HOLD">🟡 Customer Hold</option>
+                      <option value="OFFLINE_BOOKING">🏬 Offline / In-Store Booking</option>
+                      <option value="OTHER">📝 Other</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div style={{ maxHeight: "320px", overflowY: "auto", padding: "8px 14px" }}>
-                  {products.map((p) => (
-                    <label
-                      key={p.id}
+                <div style={{ marginBottom: "20px" }}>
+                  <label className="apple-label">Internal Note</label>
+                  <input
+                    type="text"
+                    name="internalNote"
+                    placeholder="e.g. Scheduled deep dry-cleaning post wedding rush"
+                    className="apple-input"
+                  />
+                </div>
+
+                {/* Product Selection List */}
+                <div style={{ border: "1px solid #E2E4EB", borderRadius: "12px", overflow: "hidden", marginBottom: "20px", backgroundColor: "#FAFAFC" }}>
+                  <div style={{
+                    padding: "12px 18px",
+                    backgroundColor: "#F8F9FC",
+                    borderBottom: "1px solid #E2E4EB",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}>
+                    <strong style={{ fontSize: "13.5px", color: "#2E3346" }}>
+                      Select Outfits ({selectedProductIds.length} Selected)
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={selectAllProducts}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "8px 0",
-                        borderBottom: "1px solid #F0EEFF",
+                        background: "transparent",
+                        border: "0",
+                        color: "#7964FF",
+                        fontWeight: "600",
                         cursor: "pointer",
+                        fontSize: "12.5px",
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(p.id)}
-                        onChange={() => toggleSelectProduct(p.id)}
-                      />
-                      <span>{p.title}</span>
-                      <span style={{ fontSize: "12px", color: "#999", marginLeft: "auto" }}>₹{p.variants?.nodes[0]?.price || ""}</span>
-                    </label>
-                  ))}
+                      {selectedProductIds.length === products.length ? "Deselect All" : "Select All Products"}
+                    </button>
+                  </div>
+
+                  <div style={{ maxHeight: "340px", overflowY: "auto", padding: "8px 18px", backgroundColor: "#FFFFFF" }}>
+                    {products.map((p) => (
+                      <label
+                        key={p.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "10px 0",
+                          borderBottom: "1px solid #F0F2F6",
+                          cursor: "pointer",
+                          fontSize: "13.5px",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(p.id)}
+                          onChange={() => toggleSelectProduct(p.id)}
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            accentColor: "#7964FF",
+                            cursor: "pointer",
+                          }}
+                        />
+                        <span style={{ fontWeight: selectedProductIds.includes(p.id) ? "600" : "400", color: "#2E3346" }}>
+                          {p.title}
+                        </span>
+                        <span style={{
+                          fontSize: "12px",
+                          color: "#7964FF",
+                          marginLeft: "auto",
+                          backgroundColor: "#F0EEFF",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          fontWeight: "600",
+                        }}>
+                          ₹{p.variants?.nodes[0]?.price || ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <s-button type="submit" disabled={selectedProductIds.length === 0 || isSubmitting}>
-                {isSubmitting ? "⏳ Blocking Outfits..." : `Block Selected (${selectedProductIds.length}) Outfits`}
-              </s-button>
-            </Form>
-          </s-box>
-        </s-section>
-      )}
+                <button
+                  type="submit"
+                  disabled={selectedProductIds.length === 0 || isSubmitting}
+                  className="apple-btn-primary"
+                >
+                  {isSubmitting ? "⏳ Blocking Outfits..." : `Block Selected (${selectedProductIds.length}) Outfits`}
+                </button>
+              </Form>
+            </div>
+          </div>
+        )}
 
-      {/* =========================================================================
-          TAB 3: STORE-WIDE BLOCKED INVENTORY
-          ========================================================================= */}
-      {currentTab === "storewide" && (
-        <s-section>
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+        {/* =========================================================================
+            TAB 3: STORE-WIDE BLOCKED INVENTORY
+            ========================================================================= */}
+        {currentTab === "storewide" && (
+          <div className="apple-card">
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E4EB", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700" }}>
-                  📋 Store-Wide Blocked Inventory ({storeWideBlocks.length})
+                <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "700", color: "#2E3346" }}>
+                  📋 Store-Wide Blocked Inventory
                 </h3>
-                <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "#646B7C" }}>
+                <p style={{ margin: 0, fontSize: "12.5px", color: "#646B7C" }}>
                   Live overview of all outfits currently blocked across the catalog (at dry cleaner, in alteration, or offline booked).
                 </p>
               </div>
+              <span style={{
+                backgroundColor: "#F0EEFF",
+                color: "#7964FF",
+                border: "1px solid #D8D2FF",
+                padding: "4px 12px",
+                borderRadius: "9999px",
+                fontSize: "12px",
+                fontWeight: "700",
+              }}>
+                {storeWideBlocks.length} Blocked Outfits
+              </span>
             </div>
 
             {storeWideBlocks.length === 0 ? (
-              <p style={{ margin: 0, padding: "20px", textAlign: "center", color: "#646B7C" }}>
-                No active blocks across the store. All outfits without bookings are currently available for customers!
-              </p>
+              <div style={{ padding: "40px 20px", textAlign: "center", color: "#646B7C" }}>
+                <span style={{ fontSize: "36px", display: "block", marginBottom: "10px" }}>✨</span>
+                <strong style={{ fontSize: "15px", color: "#2E3346", display: "block", marginBottom: "4px" }}>
+                  No Active Store-Wide Blocks
+                </strong>
+                <p style={{ margin: 0, fontSize: "13px" }}>
+                  All outfits without bookings are currently available for customer orders.
+                </p>
+              </div>
             ) : (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+                <table className="apple-table">
                   <thead>
-                    <tr style={{ backgroundColor: "#F8F9FC", borderBottom: "2px solid #E2E4EB", textAlign: "left" }}>
-                      <th style={{ padding: "12px" }}>Outfit / Product</th>
-                      <th style={{ padding: "12px" }}>Reason</th>
-                      <th style={{ padding: "12px" }}>Blocked Dates</th>
-                      <th style={{ padding: "12px" }}>Customer / Staff Note</th>
-                      <th style={{ padding: "12px", textAlign: "right" }}>Action</th>
+                    <tr>
+                      <th>Outfit / Product</th>
+                      <th>Reason</th>
+                      <th>Blocked Dates</th>
+                      <th>Customer / Staff Note</th>
+                      <th style={{ textAlign: "right" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {storeWideBlocks.map((b) => {
                       const color = getReasonColor(b.reason);
                       return (
-                        <tr key={b.id} style={{ borderBottom: "1px solid #E2E4EB" }}>
-                          <td style={{ padding: "12px", fontWeight: "600" }}>
+                        <tr key={b.id}>
+                          <td style={{ fontWeight: "600" }}>
                             <Link
                               to={`/app/availability?productId=${encodeURIComponent(b.productId)}&tab=inspector`}
-                              style={{ color: "#2E3346", textDecoration: "none" }}
+                              style={{ color: "#7964FF", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}
                             >
-                              {b.productTitle || b.productId} ➔
+                              <span>{b.productTitle || b.productId}</span>
+                              <span style={{ fontSize: "12px" }}>➔</span>
                             </Link>
                           </td>
-                          <td style={{ padding: "12px" }}>
+                          <td>
                             <span
+                              className="apple-pill-badge"
                               style={{
-                                backgroundColor: color + "18",
+                                backgroundColor: color + "14",
                                 color: color,
-                                border: `1px solid ${color}40`,
-                                padding: "3px 8px",
-                                borderRadius: "6px",
-                                fontSize: "12px",
-                                fontWeight: "700",
+                                border: `1px solid ${color}35`,
                               }}
                             >
                               {formatReasonLabel(b.reason)}
                             </span>
                           </td>
-                          <td style={{ padding: "12px" }}>
-                            {formatDisplayDate(b.startDate)} ➔ {formatDisplayDate(b.endDate)}
+                          <td style={{ fontWeight: "600", color: "#2E3346" }}>
+                            {formatDisplayDate(b.startDate)} <span style={{ color: "#7964FF" }}>➔</span> {formatDisplayDate(b.endDate)}
                           </td>
-                          <td style={{ padding: "12px", color: "#646B7C" }}>
-                            {b.customerName && <div><strong>{b.customerName}</strong> {b.customerPhone ? `(${b.customerPhone})` : ""}</div>}
-                            {b.internalNote && <div style={{ fontSize: "12px" }}>{b.internalNote}</div>}
+                          <td style={{ color: "#646B7C" }}>
+                            {b.customerName && <div><strong style={{ color: "#2E3346" }}>{b.customerName}</strong> {b.customerPhone ? `(${b.customerPhone})` : ""}</div>}
+                            {b.internalNote && <div style={{ fontSize: "12px", marginTop: "2px" }}>{b.internalNote}</div>}
                             {!b.customerName && !b.internalNote && "—"}
                           </td>
-                          <td style={{ padding: "12px", textAlign: "right" }}>
+                          <td style={{ textAlign: "right" }}>
                             <Form
                               method="post"
                               onSubmit={(e) => {
@@ -1343,16 +1731,7 @@ export default function AvailabilityManager() {
                               <input type="hidden" name="blockId" value={b.id} />
                               <button
                                 type="submit"
-                                style={{
-                                  backgroundColor: "#fef2f2",
-                                  border: "1px solid #f87171",
-                                  color: "#b91c1c",
-                                  padding: "4px 10px",
-                                  borderRadius: "6px",
-                                  fontSize: "12px",
-                                  fontWeight: "600",
-                                  cursor: "pointer",
-                                }}
+                                className="apple-btn-danger"
                               >
                                 Unblock ✕
                               </button>
@@ -1365,119 +1744,164 @@ export default function AvailabilityManager() {
                 </table>
               </div>
             )}
-          </s-box>
-        </s-section>
-      )}
+          </div>
+        )}
 
-      {/* =========================================================================
-          TAB 4: AVAILABILITY SEARCH BY DATE & CATEGORY
-          ========================================================================= */}
-      {currentTab === "search_dates" && (
-        <s-section>
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "700" }}>
-              🔎 Search Available Outfits by Date & Category
-            </h3>
-            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#646B7C" }}>
-              Instantly discover which outfits are free for a customer's specific event dates.
-            </p>
-
-            <Form method="get">
-              <input type="hidden" name="tab" value="search_dates" />
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "14px", alignItems: "flex-end" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Event / Pickup Date *</label>
-                  <input
-                    type="date"
-                    name="searchFrom"
-                    defaultValue={searchFrom}
-                    required
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Return Date *</label>
-                  <input
-                    type="date"
-                    name="searchTo"
-                    defaultValue={searchTo}
-                    required
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Category</label>
-                  <select
-                    name="searchCategory"
-                    defaultValue={searchCategory}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "13px" }}
-                  >
-                    <option value="ALL">All Categories</option>
-                    <option value="lehenga">Lehenga</option>
-                    <option value="sherwani">Sherwani</option>
-                    <option value="gown">Gown</option>
-                    <option value="saree">Saree</option>
-                    <option value="jewellery">Jewellery</option>
-                  </select>
-                </div>
-                <s-button type="submit">Search Availability</s-button>
+        {/* =========================================================================
+            TAB 4: AVAILABILITY SEARCH BY DATE & CATEGORY
+            ========================================================================= */}
+        {currentTab === "search_dates" && (
+          <div className="apple-card">
+            <div className="apple-card-body">
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "700", color: "#2E3346" }}>
+                  🔎 Search Available Outfits by Date & Category
+                </h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#646B7C" }}>
+                  Instantly discover which outfits are free for a customer's specific event dates.
+                </p>
               </div>
-            </Form>
 
-            {/* Results Counters & Listing */}
-            {searchDatesResult && (
-              <div style={{ marginTop: "24px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px", marginBottom: "20px" }}>
-                  <div style={{ backgroundColor: "#e3f5e1", border: "1px solid #bbf7d0", padding: "14px", borderRadius: "8px" }}>
-                    <span style={{ fontSize: "12px", color: "#166534" }}>Available to Rent</span>
-                    <h3 style={{ margin: "4px 0 0", fontSize: "22px", color: "#166534" }}>{searchDatesResult.availableItems.length} Outfits</h3>
+              <Form method="get">
+                <input type="hidden" name="tab" value="search_dates" />
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", alignItems: "flex-end" }}>
+                  <div>
+                    <label className="apple-label">Event / Pickup Date *</label>
+                    <input
+                      type="date"
+                      name="searchFrom"
+                      defaultValue={searchFrom}
+                      required
+                      className="apple-input"
+                    />
                   </div>
-
-                  <div style={{ backgroundColor: "#fee2e2", border: "1px solid #fca5a5", padding: "14px", borderRadius: "8px" }}>
-                    <span style={{ fontSize: "12px", color: "#b91c1c" }}>Customer Booked</span>
-                    <h3 style={{ margin: "4px 0 0", fontSize: "22px", color: "#b91c1c" }}>{searchDatesResult.bookedItems.length} Outfits</h3>
+                  <div>
+                    <label className="apple-label">Return Date *</label>
+                    <input
+                      type="date"
+                      name="searchTo"
+                      defaultValue={searchTo}
+                      required
+                      className="apple-input"
+                    />
                   </div>
-
-                  <div style={{ backgroundColor: "#ffedd5", border: "1px solid #fdba74", padding: "14px", borderRadius: "8px" }}>
-                    <span style={{ fontSize: "12px", color: "#c2410c" }}>Blocked (Cleaning/Maint)</span>
-                    <h3 style={{ margin: "4px 0 0", fontSize: "22px", color: "#c2410c" }}>{searchDatesResult.blockedItems.length} Outfits</h3>
-                  </div>
-                </div>
-
-                <h4 style={{ margin: "0 0 10px", fontSize: "16px", fontWeight: "700" }}>
-                  🟢 Available Outfits ({searchDatesResult.availableItems.length})
-                </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
-                  {searchDatesResult.availableItems.map((p) => (
-                    <div
-                      key={p.id}
-                      style={{
-                        border: "1px solid #bbf7d0",
-                        borderRadius: "8px",
-                        padding: "12px",
-                        backgroundColor: "#f0fdf4",
-                      }}
+                  <div>
+                    <label className="apple-label">Category</label>
+                    <select
+                      name="searchCategory"
+                      defaultValue={searchCategory}
+                      className="apple-select"
                     >
-                      <strong style={{ display: "block", fontSize: "14px", marginBottom: "4px" }}>{p.title}</strong>
-                      <span style={{ fontSize: "12px", color: "#166534" }}>₹{p.variants?.nodes[0]?.price || ""}</span>
-                      <div style={{ marginTop: "8px" }}>
-                        <Link
-                          to={`/app/availability?productId=${encodeURIComponent(p.id)}&tab=inspector`}
-                          style={{ fontSize: "11.5px", color: "#7964FF", fontWeight: "600", textDecoration: "none" }}
-                        >
-                          Inspect & Block ➔
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                      <option value="ALL">All Categories</option>
+                      <option value="lehenga">Lehenga</option>
+                      <option value="sherwani">Sherwani</option>
+                      <option value="gown">Gown</option>
+                      <option value="saree">Saree</option>
+                      <option value="jewellery">Jewellery</option>
+                    </select>
+                  </div>
+                  <div>
+                    <button type="submit" className="apple-btn-primary" style={{ width: "100%" }}>
+                      Search Availability
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </s-box>
-        </s-section>
-      )}
+              </Form>
 
+              {/* Results Counters & Listing */}
+              {searchDatesResult && (
+                <div style={{ marginTop: "28px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: "24px" }}>
+                    <div style={{
+                      backgroundColor: "#ECFDF5",
+                      border: "1px solid #A7F3D0",
+                      padding: "16px 18px",
+                      borderRadius: "14px",
+                    }}>
+                      <span style={{ fontSize: "12px", color: "#065F46", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        Available to Rent
+                      </span>
+                      <h3 style={{ margin: "6px 0 0", fontSize: "24px", fontWeight: "700", color: "#059669" }}>
+                        {searchDatesResult.availableItems.length} Outfits
+                      </h3>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: "#FEF2F2",
+                      border: "1px solid #FECACA",
+                      padding: "16px 18px",
+                      borderRadius: "14px",
+                    }}>
+                      <span style={{ fontSize: "12px", color: "#991B1B", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        Customer Booked
+                      </span>
+                      <h3 style={{ margin: "6px 0 0", fontSize: "24px", fontWeight: "700", color: "#DC2626" }}>
+                        {searchDatesResult.bookedItems.length} Outfits
+                      </h3>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: "#FFF7ED",
+                      border: "1px solid #FED7AA",
+                      padding: "16px 18px",
+                      borderRadius: "14px",
+                    }}>
+                      <span style={{ fontSize: "12px", color: "#9A3412", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        Blocked (Cleaning / Maint)
+                      </span>
+                      <h3 style={{ margin: "6px 0 0", fontSize: "24px", fontWeight: "700", color: "#D97706" }}>
+                        {searchDatesResult.blockedItems.length} Outfits
+                      </h3>
+                    </div>
+                  </div>
+
+                  <h4 style={{ margin: "0 0 14px", fontSize: "16px", fontWeight: "700", color: "#2E3346" }}>
+                    🟢 Available Outfits ({searchDatesResult.availableItems.length})
+                  </h4>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
+                    {searchDatesResult.availableItems.map((p) => (
+                      <div
+                        key={p.id}
+                        className="apple-card"
+                        style={{
+                          padding: "14px 16px",
+                          backgroundColor: "#FAFBFD",
+                          border: "1px solid #E2E4EB",
+                        }}
+                      >
+                        <strong style={{ display: "block", fontSize: "14px", marginBottom: "6px", color: "#2E3346" }}>
+                          {p.title}
+                        </strong>
+                        <span style={{
+                          fontSize: "12px",
+                          color: "#7964FF",
+                          backgroundColor: "#F0EEFF",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          fontWeight: "600",
+                        }}>
+                          ₹{p.variants?.nodes[0]?.price || ""}
+                        </span>
+                        <div style={{ marginTop: "12px" }}>
+                          <Link
+                            to={`/app/availability?productId=${encodeURIComponent(p.id)}&tab=inspector`}
+                            className="apple-btn-secondary"
+                            style={{ fontSize: "12px", padding: "6px 12px", width: "100%", boxSizing: "border-box" }}
+                          >
+                            Inspect & Block ➔
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </div>
     </s-page>
   );
 }
