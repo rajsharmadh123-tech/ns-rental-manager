@@ -74,13 +74,13 @@ export const loader = async ({ request }) => {
     variantId,
     pickupDate,
     returnDate,
+    isStorefront: true,
   });
 
   return new Response(
     JSON.stringify({
       isAvailable: result.isAvailable,
       message: result.message,
-      conflictingCount: result.conflictingRentals.length,
       rentalPrice,
       securityDeposit,
     }),

@@ -104,36 +104,79 @@ model RentalPayment {
 }
 
 model RentalProductConfig {
-  id              String   @id @default(cuid())
-  shop            String
-  productId       String
-  variantId       String?  @default("")
-  rentalPrice     Float
-  securityDeposit Float    @default(0)
-  isEnabled       Boolean  @default(true)
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  shop               String
+  productId          String
+  variantId          String?  @default("")
+  rentalPrice        Float
+  securityDeposit    Float    @default(0)
+  isEnabled          Boolean  @default(true)
+  cleaningBufferDays Int?
+  isDamaged          Boolean  @default(false)
+  isLost             Boolean  @default(false)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@unique([shop, productId, variantId])
 }
 
 model RentalSettings {
-  id                  String   @id @default(cuid())
-  shop                String   @unique
-  businessName        String   @default("NS Bridal & Groom Collection")
-  phone               String?
-  whatsapp            String?
-  email               String?
-  address             String?
-  defaultDurationDays Int      @default(3)
-  defaultDeposit      Float    @default(2000)
-  lateFeePerDay       Float    @default(500)
-  damagePolicy        String?
-  cancellationPolicy  String?
-  generalTerms        String?
-  receiptFooter       String?
-  whatsappTemplates   String?  @db.Text
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  shop                 String   @unique
+  businessName         String   @default("NS Bridal & Groom Collection")
+  phone                String?
+  whatsapp             String?
+  email                String?
+  address              String?
+  defaultDurationDays  Int      @default(3)
+  defaultDeposit       Float    @default(2000)
+  lateFeePerDay        Float    @default(500)
+  cleaningBufferDays   Int      @default(1)
+  alterationBufferDays Int      @default(0)
+  damagePolicy         String?
+  cancellationPolicy   String?
+  generalTerms         String?
+  receiptFooter        String?
+  whatsappTemplates    String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model AvailabilityBlock {
+  id            String   @id @default(cuid())
+  shop          String
+  productId     String
+  productTitle  String?
+  variantId     String?  @default("")
+
+  startDate     DateTime
+  endDate       DateTime
+
+  reason        String   // OFFLINE_BOOKING, CLEANING, ALTERATION, MAINTENANCE, CUSTOMER_HOLD, DAMAGED, LOST, PERSONAL_USE, OTHER
+  status        String   @default("ACTIVE") // ACTIVE, CANCELLED, COMPLETED
+
+  customerName  String?
+  customerPhone String?
+  internalNote  String?
+  createdBy     String?  @default("Admin")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shop, productId, startDate, endDate])
+  @@index([shop, status])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  shop        String
+  action      String   // BLOCK_CREATED, BLOCK_CANCELLED, STATUS_CHANGED, etc.
+  entityType  String   // AVAILABILITY_BLOCK, PRODUCT, RENTAL
+  entityId    String
+  details     String?  @db.Text
+  performedBy String   @default("Admin")
+  createdAt   DateTime @default(now())
+
+  @@index([shop, entityType, entityId])
 }

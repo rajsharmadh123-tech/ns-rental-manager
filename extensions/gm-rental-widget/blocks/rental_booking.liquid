@@ -224,7 +224,7 @@
           <svg class="gm-btn-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
           </svg>
-          <span>{{ block.settings.whatsapp_text | default: "Rent Through WhatsApp" }}</span>
+          <span>{{ block.settings.whatsapp_text | default: "Book on WhatsApp" }}</span>
         </a>
       {% endif %}
 
@@ -994,11 +994,33 @@
   const productName = {{ product.title | json }};
   const productIdStr = String({{ product.id | json }});
   const defaultVariantId = {{ selected_variant.id | json }};
+  const productVariants = {{ product.variants | json }};
   const itemType = {{ item_type | json }};
 
   let activeRentalPrice = {{ initial_rental_price | json }};
   let activeDeposit = {{ initial_deposit | json }};
-  const whatsappNumber = {{ block.settings.whatsapp_number | json }};
+  const whatsappNumber = {{ block.settings.whatsapp_number | default: "917869586698" | json }};
+
+  function getSelectedVariantTitle() {
+    try {
+      let variantId = defaultVariantId;
+      const variantField = document.querySelector('form[action*="/cart/add"] [name="id"]') ||
+                           document.querySelector('[name="id"]');
+      if (variantField && variantField.value) {
+        variantId = variantField.value;
+      }
+      if (Array.isArray(productVariants)) {
+        const matched = productVariants.find(function(v) {
+          return String(v.id) === String(variantId);
+        });
+        if (matched && matched.title && matched.title !== 'Default Title') {
+          return matched.title;
+        }
+      }
+    } catch (e) {}
+    const selTitle = {{ selected_variant.title | json }};
+    return (selTitle && selTitle !== 'Default Title') ? selTitle : 'Standard / Free Size';
+  }
 
   const STORAGE_KEY = 'gm_rental_session_dates';
 
@@ -1390,23 +1412,57 @@
       event.preventDefault();
       if (!validateDates()) return;
 
-      const cleanNumber = String(whatsappNumber).replace(/\D/g, '');
+      let cleanNumber = String(whatsappNumber || '917869586698').replace(/\D/g, '');
+      if (cleanNumber.length === 10) {
+        cleanNumber = '91' + cleanNumber;
+      }
       if (!cleanNumber) {
-        showMessage('WhatsApp number is not configured.', true);
-        return;
+        cleanNumber = '917869586698';
       }
 
+      const variantTitle = getSelectedVariantTitle();
+
+      const pDateObj = pickup && pickup.value ? new Date(pickup.value + 'T00:00:00') : null;
+      const rDateObj = returnDate && returnDate.value ? new Date(returnDate.value + 'T00:00:00') : null;
+
+      const pDateFormatted = pDateObj && !isNaN(pDateObj)
+        ? pDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : (pickup ? pickup.value : '');
+      const rDateFormatted = rDateObj && !isNaN(rDateObj)
+        ? rDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : (returnDate ? returnDate.value : '');
+
+      let rentalDays = 1;
+      if (pDateObj && rDateObj && !isNaN(pDateObj) && !isNaN(rDateObj)) {
+        const diffDays = Math.round((rDateObj - pDateObj) / (1000 * 60 * 60 * 24));
+        rentalDays = diffDays > 0 ? diffDays : 1;
+      }
+
+      const rPriceNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
+      const sDepNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+      const totalNum = rPriceNum + sDepNum;
+
+      const productUrl = window.location.href.split('?')[0];
+
       const msg = [
-        'Hello NS Bridal & Groom Collection,',
-        'I want to rent this ' + itemType.toLowerCase() + '.',
+        'Hey NS Bridal & Groom Collection Team! 👋',
         '',
-        'Product: ' + productName,
-        'Rental Rate: ' + activeRentalPrice,
-        'Security Deposit: ' + activeDeposit,
-        'Pickup Date: ' + pickup.value,
-        'Return Date: ' + returnDate.value,
+        'I’m interested in renting this outfit and would like to check its availability.',
         '',
-        'Please confirm availability & booking details.'
+        '👗 *Product:* ' + productName,
+        '📏 *Size / Variant:* ' + variantTitle,
+        '',
+        '📅 *Pickup Date:* ' + pDateFormatted,
+        '📅 *Return Date:* ' + rDateFormatted,
+        '⏱️ *Rental Duration:* ' + rentalDays + ' Days',
+        '',
+        '💰 *Rental Price:* ₹' + rPriceNum.toLocaleString('en-IN'),
+        '🛡️ *Security Deposit:* ₹' + sDepNum.toLocaleString('en-IN'),
+        '💳 *Total Amount:* ₹' + totalNum.toLocaleString('en-IN'),
+        '',
+        '🔗 *Product Link:* ' + productUrl,
+        '',
+        'Please confirm the availability and booking details. Thank you! 😊'
       ].join('\n');
 
       window.open('https://wa.me/' + cleanNumber + '?text=' + encodeURIComponent(msg), '_blank');
@@ -1658,7 +1714,7 @@
       "type": "text",
       "id": "whatsapp_text",
       "label": "WhatsApp Button Text",
-      "default": "Rent Through WhatsApp"
+      "default": "Book on WhatsApp"
     },
     {
       "type": "textarea",

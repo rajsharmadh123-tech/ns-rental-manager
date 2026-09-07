@@ -81,6 +81,7 @@ export default function App() {
         <s-link href="/app/payments">Payments</s-link>
         <s-link href="/app/reports">Reports</s-link>
         <s-link href="/app/products">Rental Products</s-link>
+        <s-link href="/app/availability">Availability & Blocker</s-link>
         <s-link href="/app/settings">Settings</s-link>
       </s-app-nav>
 

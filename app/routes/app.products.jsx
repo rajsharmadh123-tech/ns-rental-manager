@@ -1,4 +1,4 @@
-import { useLoaderData, useActionData, Form } from "react-router";
+import { useLoaderData, useActionData, Form, Link } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server.js";
@@ -212,6 +212,14 @@ export default function RentalProducts() {
 
                     <s-button type="submit" style={{ width: "100%" }}>Save Rental Pricing</s-button>
                   </Form>
+                  <div style={{ marginTop: "10px", textAlign: "center" }}>
+                    <Link
+                      to={`/app/availability?productId=${encodeURIComponent(p.id)}`}
+                      style={{ fontSize: "12.5px", fontWeight: "600", color: "#7964FF", textDecoration: "none" }}
+                    >
+                      📅 Availability & Date Blocker ➔
+                    </Link>
+                  </div>
                 </s-box>
               );
             })}

@@ -54,6 +54,8 @@ export const action = async ({ request }) => {
   const defaultDurationDays = parseInt(formData.get("defaultDurationDays") || "3", 10);
   const defaultDeposit = parseFloat(formData.get("defaultDeposit") || "2000");
   const lateFeePerDay = parseFloat(formData.get("lateFeePerDay") || "500");
+  const cleaningBufferDays = parseInt(formData.get("cleaningBufferDays") || "1", 10);
+  const alterationBufferDays = parseInt(formData.get("alterationBufferDays") || "0", 10);
   const cancellationPolicy = formData.get("cancellationPolicy") || "";
   const damagePolicy = formData.get("damagePolicy") || "";
   const generalTerms = formData.get("generalTerms") || "";
@@ -79,6 +81,8 @@ export const action = async ({ request }) => {
       defaultDurationDays,
       defaultDeposit,
       lateFeePerDay,
+      cleaningBufferDays,
+      alterationBufferDays,
       cancellationPolicy,
       damagePolicy,
       generalTerms,
@@ -95,6 +99,8 @@ export const action = async ({ request }) => {
       defaultDurationDays,
       defaultDeposit,
       lateFeePerDay,
+      cleaningBufferDays,
+      alterationBufferDays,
       cancellationPolicy,
       damagePolicy,
       generalTerms,
@@ -218,6 +224,32 @@ export default function SettingsPage() {
                   style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
                   required
                 />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "4px", fontWeight: "600" }}>Post-Return Cleaning Buffer (Days)</label>
+                <input
+                  type="number"
+                  name="cleaningBufferDays"
+                  defaultValue={settings.cleaningBufferDays ?? 1}
+                  min="0"
+                  max="10"
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+                <span style={{ fontSize: "11px", color: "#666" }}>Auto-blocks days post garment return for laundry/cleaning</span>
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "4px", fontWeight: "600" }}>Alteration Buffer (Days)</label>
+                <input
+                  type="number"
+                  name="alterationBufferDays"
+                  defaultValue={settings.alterationBufferDays ?? 0}
+                  min="0"
+                  max="10"
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}
+                />
+                <span style={{ fontSize: "11px", color: "#666" }}>Default buffer days for custom sizing/alteration</span>
               </div>
             </div>
 

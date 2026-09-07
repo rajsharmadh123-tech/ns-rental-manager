@@ -90,13 +90,14 @@ export const action = async ({ request }) => {
     variantId: variantId ? String(variantId) : "",
     pickupDate,
     returnDate,
+    isStorefront: true,
   });
 
   if (!availability.isAvailable) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: availability.message || "Selected outfit is unavailable for these dates.",
+        error: "Unavailable for selected date",
       }),
       { status: 400, headers: corsHeaders }
     );

@@ -37,6 +37,18 @@ export const loader = async ({ request }) => {
     ];
   }
 
+  let blocks = [];
+  try {
+    blocks = await prisma.availabilityBlock.findMany({
+      where: {
+        shop: session.shop,
+        status: "ACTIVE",
+        ...(productFilter !== "ALL" ? { productTitle: productFilter } : {}),
+      },
+      orderBy: { startDate: "asc" },
+    });
+  } catch (e) {}
+
   const rentals = await prisma.rental.findMany({
     where,
     orderBy: { pickupDate: "asc" },
@@ -47,6 +59,7 @@ export const loader = async ({ request }) => {
 
   return {
     rentals,
+    blocks,
     viewMode,
     statusFilter,
     productFilter,
@@ -57,7 +70,7 @@ export const loader = async ({ request }) => {
 };
 
 export default function RentalCalendar() {
-  const { rentals, viewMode, statusFilter, productFilter, search, baseDateStr, uniqueProducts } = useLoaderData();
+  const { rentals, blocks, viewMode, statusFilter, productFilter, search, baseDateStr, uniqueProducts } = useLoaderData();
   const submit = useSubmit();
 
   const [currentDate, setCurrentDate] = useState(new Date(baseDateStr));
@@ -193,6 +206,21 @@ export default function RentalCalendar() {
         </form>
       </s-section>
 
+      {/* Availability Status Color Legend */}
+      <s-section>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", fontSize: "12px", padding: "10px 14px", backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E2E4EB" }}>
+          <strong style={{ color: "#2E3346" }}>Status Legend:</strong>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#16a34a" }}></span> 🟢 Available</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444" }}></span> 🔴 Customer Booking</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#f97316" }}></span> 🟠 Offline Booking</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#3b82f6" }}></span> 🔵 Cleaning</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#a855f7" }}></span> 🟣 Alteration</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#374151" }}></span> ⚫ Maintenance</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#eab308" }}></span> 🟡 Customer Hold</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#b91c1c" }}></span> 🔴 Damaged/Lost</span>
+        </div>
+      </s-section>
+
       {/* Calendar Grid */}
       <s-section>
         <s-box padding="base" borderWidth="base" borderRadius="base">
@@ -231,6 +259,48 @@ export default function RentalCalendar() {
                 return p <= dayEnd && ret >= dayStart;
               });
 
+              const dayBlocks = (blocks || []).filter((b) => {
+                const s = new Date(b.startDate);
+                const e = new Date(b.endDate);
+                return s <= dayEnd && e >= dayStart;
+              });
+
+              const allDayEvents = [
+                ...dayRentals.map((r) => {
+                  const isPickupDay = new Date(r.pickupDate).toDateString() === day.toDateString();
+                  const isReturnDay = new Date(r.returnDate).toDateString() === day.toDateString();
+                  const icon = isPickupDay ? "📦 " : isReturnDay ? "🔄 " : r.status === "OFFLINE_BOOKED" ? "🏬 " : "🔴 ";
+                  return {
+                    id: r.id,
+                    link: `/app/rentals/${r.id}`,
+                    label: `${icon}${r.bookingId || r.customerName}: ${r.productTitle}`,
+                    tooltip: `${r.status === "OFFLINE_BOOKED" ? "In-Store Booking" : "Rental"}: ${r.productTitle} (${r.customerName})`,
+                    bg: r.status === "OFFLINE_BOOKED" ? "#ffedd5" : r.status === "CONFIRMED" ? "#e3f5e1" : "#fee2e2",
+                    color: r.status === "OFFLINE_BOOKED" ? "#c2410c" : r.status === "CONFIRMED" ? "#166534" : "#b91c1c",
+                  };
+                }),
+                ...dayBlocks.map((b) => {
+                  let bg = "#f1f5f9";
+                  let color = "#475569";
+                  let icon = "🔒 ";
+                  if (b.reason === "CLEANING") { bg = "#dbeafe"; color = "#1d4ed8"; icon = "🔵 🧼 "; }
+                  else if (b.reason === "ALTERATION") { bg = "#f3e8ff"; color = "#7e22ce"; icon = "🟣 ✂️ "; }
+                  else if (b.reason === "MAINTENANCE") { bg = "#f3f4f6"; color = "#1f2937"; icon = "⚫ 🔧 "; }
+                  else if (b.reason === "CUSTOMER_HOLD") { bg = "#fef9c3"; color = "#a16207"; icon = "🟡 ⏳ "; }
+                  else if (b.reason === "DAMAGED" || b.reason === "LOST") { bg = "#fee2e2"; color = "#b91c1c"; icon = "🔴 ⚠️ "; }
+                  else if (b.reason === "OFFLINE_BOOKING") { bg = "#ffedd5"; color = "#c2410c"; icon = "🟠 🏬 "; }
+
+                  return {
+                    id: b.id,
+                    link: `/app/availability?productId=${encodeURIComponent(b.productId)}`,
+                    label: `${icon}${b.productTitle || b.productId}`,
+                    tooltip: `Blocked (${b.reason}): ${b.productTitle || b.productId} - ${b.internalNote || ""}`,
+                    bg,
+                    color,
+                  };
+                }),
+              ];
+
               return (
                 <div
                   key={day.toISOString()}
@@ -247,47 +317,32 @@ export default function RentalCalendar() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    {dayRentals.slice(0, 3).map((r) => {
-                      const isPickupDay = new Date(r.pickupDate).toDateString() === day.toDateString();
-                      const isReturnDay = new Date(r.returnDate).toDateString() === day.toDateString();
+                    {allDayEvents.slice(0, 3).map((ev) => (
+                      <Link
+                        key={ev.id}
+                        to={ev.link}
+                        title={ev.tooltip}
+                        style={{
+                          display: "block",
+                          padding: "3px 6px",
+                          borderRadius: "4px",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          backgroundColor: ev.bg,
+                          color: ev.color,
+                        }}
+                      >
+                        {ev.label}
+                      </Link>
+                    ))}
 
-                      return (
-                        <Link
-                          key={r.id}
-                          to={`/app/rentals/${r.id}`}
-                          title={`${r.bookingId || r.customerName} - ${r.productTitle} (${r.status})`}
-                          style={{
-                            display: "block",
-                            padding: "3px 6px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: "600",
-                            textDecoration: "none",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            backgroundColor:
-                              r.status === "CONFIRMED" ? "#e3f5e1" :
-                              r.status === "ACTIVE" || r.status === "PICKED_UP" ? "#e0f2fe" :
-                              r.status === "COMPLETED" || r.status === "RETURNED" ? "#f3f4f6" :
-                              r.status === "CANCELLED" ? "#ffe4e6" : "#fef3c7",
-                            color:
-                              r.status === "CONFIRMED" ? "#166534" :
-                              r.status === "ACTIVE" || r.status === "PICKED_UP" ? "#0369a1" :
-                              r.status === "COMPLETED" || r.status === "RETURNED" ? "#374151" :
-                              r.status === "CANCELLED" ? "#9f1239" : "#92400e"
-                          }}
-                        >
-                          {isPickupDay && "📦 "}
-                          {isReturnDay && "🔄 "}
-                          {r.bookingId || r.customerName}: {r.productTitle}
-                        </Link>
-                      );
-                    })}
-
-                    {dayRentals.length > 3 && (
+                    {allDayEvents.length > 3 && (
                       <div style={{ fontSize: "10px", color: "#666", fontWeight: "600" }}>
-                        +{dayRentals.length - 3} more
+                        +{allDayEvents.length - 3} more
                       </div>
                     )}
                   </div>
