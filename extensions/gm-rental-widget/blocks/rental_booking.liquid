@@ -1122,7 +1122,7 @@
   // Fetch individual product pricing & availability from GM Rental Manager
   async function checkAvailabilityAndPricing(isCheckingDates) {
     const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
-    const renderUrl = 'https://ns-rental-manager.onrender.com/api/availability';
+    const renderUrl = 'https://ns-rental-manager.vercel.app/api/availability';
     const proxyUrl = '/apps/gm-rental/api/availability';
 
     let queryString = '?shop=' + encodeURIComponent(shop) + '&productId=' + encodeURIComponent(productIdStr);
@@ -1227,7 +1227,7 @@
       securityDeposit: parseAmount(activeDeposit),
     };
 
-    const renderUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
+    const renderUrl = 'https://ns-rental-manager.vercel.app/api/storefront-booking';
     const proxyUrl = '/apps/gm-rental/api/storefront-booking';
 
     let bookingId = fallbackBookingId;
@@ -1381,7 +1381,7 @@
 
         let checkoutUrl = null;
         try {
-          const res = await fetch('https://ns-rental-manager.onrender.com/api/create-rental-checkout', {
+          const res = await fetch('https://ns-rental-manager.vercel.app/api/create-rental-checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(draftPayload)
@@ -1609,7 +1609,7 @@
       });
 
       try {
-        const res = await fetch('https://ns-rental-manager.onrender.com/api/create-rental-checkout', {
+        const res = await fetch('https://ns-rental-manager.vercel.app/api/create-rental-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify({ shop: shop, items: itemsPayload })
