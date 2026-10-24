@@ -1001,6 +1001,15 @@
   let activeDeposit = {{ initial_deposit | json }};
   const whatsappNumber = {{ block.settings.whatsapp_number | default: "917869586698" | json }};
 
+  function parseAmount(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    var s = String(val).replace(/rs\.?/gi, '').replace(/[₹,\s]/g, '').trim();
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+
   function getSelectedVariantTitle() {
     try {
       let variantId = defaultVariantId;
@@ -1214,8 +1223,8 @@
       productTitle: productName,
       pickupDate: pickup.value,
       returnDate: returnDate.value,
-      rentalPrice: parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0,
-      securityDeposit: parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0,
+      rentalPrice: parseAmount(activeRentalPrice),
+      securityDeposit: parseAmount(activeDeposit),
     };
 
     const renderUrl = 'https://ns-rental-manager.onrender.com/api/storefront-booking';
@@ -1327,8 +1336,8 @@
   function updateTotalBillDisplay() {
     const totalBillEl = root.querySelector('.gm-total-bill-val');
     if (!totalBillEl) return;
-    const rNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
-    const sNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+    const rNum = parseAmount(activeRentalPrice);
+    const sNum = parseAmount(activeDeposit);
     const total = rNum + sNum;
     totalBillEl.textContent = '₹' + total.toLocaleString('en-IN');
   }
@@ -1354,8 +1363,8 @@
         }
 
         const shop = (window.Shopify && window.Shopify.shop) || window.location.hostname;
-        const rPriceNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
-        const sDepNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+        const rPriceNum = parseAmount(activeRentalPrice);
+        const sDepNum = parseAmount(activeDeposit);
 
         const draftPayload = {
           shop: shop,
@@ -1438,8 +1447,8 @@
         rentalDays = diffDays > 0 ? diffDays : 1;
       }
 
-      const rPriceNum = parseFloat(String(activeRentalPrice).replace(/[^\d.]/g, '')) || 0;
-      const sDepNum = parseFloat(String(activeDeposit).replace(/[^\d.]/g, '')) || 0;
+      const rPriceNum = parseAmount(activeRentalPrice);
+      const sDepNum = parseAmount(activeDeposit);
       const totalNum = rPriceNum + sDepNum;
 
       const productUrl = window.location.href.split('?')[0];
@@ -1540,7 +1549,7 @@
     let bagTotalDeposit = 0;
     rentalItems.forEach(item => {
       const props = item.properties || {};
-      const s = parseFloat(String(props['Security Deposit'] || activeDeposit).replace(/[^\d.]/g, '')) || 0;
+      const s = parseAmount(props['Security Deposit'] || activeDeposit);
       bagTotalDeposit += s * (item.quantity || 1);
     });
     if (totalDepositEl) {
@@ -1584,7 +1593,7 @@
       const itemsPayload = rentalItems.map(item => {
         const props = item.properties || {};
         const rPriceNum = (item.price / 100);
-        const sDepNum = parseFloat(String(props['Security Deposit'] || activeDeposit).replace(/[^\d.]/g, '')) || 0;
+        const sDepNum = parseAmount(props['Security Deposit'] || activeDeposit);
 
         return {
           variantId: item.variant_id || item.id,
