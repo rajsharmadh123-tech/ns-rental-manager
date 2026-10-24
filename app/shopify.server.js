@@ -7,12 +7,24 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+const defaultAppUrl =
+  process.env.SHOPIFY_APP_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+  "https://ns-rental-manager.vercel.app";
+
+const defaultApiKey = process.env.SHOPIFY_API_KEY || "137a6b104d67832b9d464d2251ec0a1c";
+const defaultApiSecret = process.env.SHOPIFY_API_SECRET || "temp_secret_placeholder";
+const defaultScopes = process.env.SCOPES
+  ? process.env.SCOPES.split(",")
+  : ["write_products", "read_products", "write_draft_orders", "read_draft_orders", "write_orders", "read_orders"];
+
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiKey: defaultApiKey,
+  apiSecretKey: defaultApiSecret,
   apiVersion: ApiVersion.July26,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  scopes: defaultScopes,
+  appUrl: defaultAppUrl,
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
