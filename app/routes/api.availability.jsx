@@ -1,10 +1,11 @@
 import { checkProductAvailability } from "../utils/availability.server.js";
+import { normalizeShop } from "../utils/shop.server.js";
 import prisma from "../db.server.js";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
 
-  const shop = url.searchParams.get("shop");
+  const rawShop = url.searchParams.get("shop");
   const productId = url.searchParams.get("productId");
   const variantId = url.searchParams.get("variantId") || "";
   const pickupDate = url.searchParams.get("pickupDate");
@@ -22,11 +23,12 @@ export const loader = async ({ request }) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const shop = normalizeShop(rawShop);
   if (!shop || !productId) {
     return new Response(
       JSON.stringify({
         isAvailable: false,
-        message: "Missing required parameters: shop, productId.",
+        message: "Missing or invalid required parameters: shop, productId.",
       }),
       { status: 400, headers: corsHeaders }
     );

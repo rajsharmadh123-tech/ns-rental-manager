@@ -1,5 +1,6 @@
 import prisma from "../db.server.js";
 import { checkProductAvailability } from "../utils/availability.server.js";
+import { normalizeShop } from "../utils/shop.server.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,12 +56,14 @@ export const action = async ({ request }) => {
     securityDeposit,
   } = body;
 
-  // 1. Input Validation (Dates & Product required; Customer details collected on checkout page)
-  if (!shop || !productId || !pickupDate || !returnDate) {
+  try {
+    const normalizedShop = normalizeShop(shop);
+    // 1. Input Validation (Dates & Product required; Customer details collected on checkout page)
+  if (!normalizedShop || !productId || !pickupDate || !returnDate) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "Missing required fields: shop, productId, pickupDate, returnDate.",
+        error: "Missing or invalid required fields: shop, productId, pickupDate, returnDate.",
       }),
       { status: 400, headers: corsHeaders }
     );
@@ -85,7 +88,7 @@ export const action = async ({ request }) => {
 
   // 2. Server-side Double Booking Protection
   const availability = await checkProductAvailability({
-    shop,
+    shop: normalizedShop,
     productId: String(productId),
     variantId: variantId ? String(variantId) : "",
     pickupDate,
@@ -112,7 +115,7 @@ export const action = async ({ request }) => {
     customer = await prisma.customer.findUnique({
       where: {
         shop_phone: {
-          shop,
+          shop: normalizedShop,
           phone: cleanPhone,
         },
       },
@@ -121,7 +124,7 @@ export const action = async ({ request }) => {
     if (!customer) {
       customer = await prisma.customer.create({
         data: {
-          shop,
+          shop: normalizedShop,
           name: cleanName,
           phone: cleanPhone,
           email: customerEmail ? String(customerEmail).trim() : null,
@@ -134,13 +137,13 @@ export const action = async ({ request }) => {
     customer = await prisma.customer.upsert({
       where: {
         shop_phone: {
-          shop,
+          shop: normalizedShop,
           phone: guestPhone,
         },
       },
       update: {},
       create: {
-        shop,
+        shop: normalizedShop,
         name: "Storefront Online Customer",
         phone: guestPhone,
         email: customerEmail ? String(customerEmail).trim() : null,
@@ -149,7 +152,7 @@ export const action = async ({ request }) => {
   }
 
   // 4. Generate Sequential Booking ID
-  const count = await prisma.rental.count({ where: { shop } });
+  const count = await prisma.rental.count({ where: { shop: normalizedShop } });
   const year = new Date().getFullYear();
   const seq = String(count + 1).padStart(4, "0");
   const bookingId = `GM-${year}-${seq}`;
@@ -161,7 +164,7 @@ export const action = async ({ request }) => {
   // 6. Create Rental Record
   const newRental = await prisma.rental.create({
     data: {
-      shop,
+      shop: normalizedShop,
       bookingId,
       productId: String(productId),
       productTitle: String(productTitle || "Outfit"),
@@ -189,4 +192,14 @@ export const action = async ({ request }) => {
     }),
     { status: 201, headers: corsHeaders }
   );
+  } catch (err) {
+    console.error("Storefront booking error:", err?.message || err);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Unable to complete booking at this time. Please proceed via Cart or WhatsApp.",
+      }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
 };

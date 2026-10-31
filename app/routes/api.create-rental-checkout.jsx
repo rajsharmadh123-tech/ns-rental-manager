@@ -1,4 +1,5 @@
 import { unauthenticated } from "../shopify.server.js";
+import { normalizeShop } from "../utils/shop.server.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,9 +42,10 @@ export const action = async ({ request }) => {
 
   const { shop, items, customerEmail, customerPhone, customerName } = body;
 
-  if (!shop) {
+  const normalizedShop = normalizeShop(shop);
+  if (!normalizedShop) {
     return new Response(
-      JSON.stringify({ success: false, error: "Missing required 'shop' parameter." }),
+      JSON.stringify({ success: false, error: `Invalid or unauthorized shop parameter: ${shop}` }),
       { status: 400, headers: corsHeaders }
     );
   }
@@ -142,7 +144,7 @@ export const action = async ({ request }) => {
 
   // Create Shopify Draft Order via Admin GraphQL API
   try {
-    const { admin } = await unauthenticated.admin(shop);
+    const { admin } = await unauthenticated.admin(normalizedShop);
 
     const draftOrderInput = {
       lineItems,
