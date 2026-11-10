@@ -10,7 +10,11 @@ embedded = true
 scopes = "write_products,read_products,write_draft_orders,read_draft_orders,write_orders,read_orders"
 
 [auth]
-redirect_urls = [ "https://ns-rental-manager.vercel.app/api/auth" ]
+redirect_urls = [
+  "https://ns-rental-manager.vercel.app/api/auth",
+  "https://ns-rental-manager.vercel.app/auth/callback",
+  "https://ns-rental-manager.vercel.app/auth/shopify/callback"
+]
 
 [webhooks]
 api_version = "2026-10"

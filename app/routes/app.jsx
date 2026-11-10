@@ -7,7 +7,7 @@ export const loader = async ({ request }) => {
   await authenticate.admin(request);
 
   // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return { apiKey: process.env.SHOPIFY_API_KEY || "137a6b104d67832b9d464d2251ec0a1c" };
 };
 
 export default function App() {

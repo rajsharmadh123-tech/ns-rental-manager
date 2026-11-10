@@ -25,35 +25,36 @@ export async function generateBookingId(shop) {
  * Calculates dashboard metrics for the given shop and date filter range
  */
 export async function getDashboardMetrics(shop, filter = "month", customStart = null, customEnd = null) {
-  const now = new Date();
-  let startDate = new Date();
-  let endDate = new Date();
+  try {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
 
-  // Reset times
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(23, 59, 59, 999);
+    // Reset times
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
-  if (filter === "today") {
-    // startDate and endDate are today
-  } else if (filter === "week") {
-    const day = startDate.getDay();
-    const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
-    startDate.setDate(diff);
-    endDate.setDate(startDate.getDate() + 6);
-  } else if (filter === "month") {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  } else if (filter === "custom" && customStart && customEnd) {
-    startDate = new Date(customStart);
-    endDate = new Date(customEnd);
-  }
+    if (filter === "today") {
+      // startDate and endDate are today
+    } else if (filter === "week") {
+      const day = startDate.getDay();
+      const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+      startDate.setDate(diff);
+      endDate.setDate(startDate.getDate() + 6);
+    } else if (filter === "month") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (filter === "custom" && customStart && customEnd) {
+      startDate = new Date(customStart);
+      endDate = new Date(customEnd);
+    }
 
-  const whereShop = { shop };
+    const whereShop = { shop };
 
-  const rentals = await prisma.rental.findMany({
-    where: whereShop,
-    orderBy: { createdAt: "desc" },
-  });
+    const rentals = await prisma.rental.findMany({
+      where: whereShop,
+      orderBy: { createdAt: "desc" },
+    });
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -120,22 +121,44 @@ export async function getDashboardMetrics(shop, filter = "month", customStart = 
     return created >= startDate && created <= endDate;
   });
 
-  return {
-    metrics: {
-      todaysRentals,
-      upcomingPickups,
-      todaysReturns,
-      overdueReturns,
-      pendingBookings,
-      confirmedBookings,
-      activeRentals,
-      completedRentals,
-      cancelledRentals,
-      totalRevenue,
-      securityDepositsHeld,
-      pendingPayments,
-      totalBookings: rentals.length,
-    },
-    recentRentals: filteredRentals.slice(0, 10),
-  };
+    return {
+      metrics: {
+        todaysRentals,
+        upcomingPickups,
+        todaysReturns,
+        overdueReturns,
+        pendingBookings,
+        confirmedBookings,
+        activeRentals,
+        completedRentals,
+        cancelledRentals,
+        totalRevenue,
+        securityDepositsHeld,
+        pendingPayments,
+        totalBookings: rentals.length,
+      },
+      recentRentals: filteredRentals.slice(0, 10),
+    };
+  } catch (error) {
+    console.warn("[getDashboardMetrics] Database query failed, returning fallback metrics:", error?.message);
+    return {
+      metrics: {
+        todaysRentals: 0,
+        upcomingPickups: 0,
+        todaysReturns: 0,
+        overdueReturns: 0,
+        pendingBookings: 0,
+        confirmedBookings: 0,
+        activeRentals: 0,
+        completedRentals: 0,
+        cancelledRentals: 0,
+        totalRevenue: 0,
+        securityDepositsHeld: 0,
+        pendingPayments: 0,
+        totalBookings: 0,
+      },
+      recentRentals: [],
+      dbError: error?.message,
+    };
+  }
 }
